@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Skull, ShieldAlert, Zap, Compass, Crosshair, Flame, Sparkles } from 'lucide-react';
-import { SKILLS_CATALOG, BESTIARY_CATALOG, RARE_AFFIXES_CATALOG } from '../data/gameCatalog';
+import { Play, Pause, Skull, ShieldAlert, Compass, Keyboard, Palette } from 'lucide-react';
+import { SKILLS_CATALOG, BESTIARY_CATALOG, RARE_AFFIXES_CATALOG, getDifficultyColorInfo } from '../data/gameCatalog';
 
 export default function OceanCanvas({
   profile,
@@ -1410,39 +1410,42 @@ export default function OceanCanvas({
 
       ctx.clearRect(0, 0, w.width, w.height);
 
-      // 1. Fundo Oceânico Abissal Bioluminescente (Seção 2.2)
+      // 1. Fundo Oceânico Infantil Azul Bebê Iluminado
       const bgGrad = ctx.createLinearGradient(0, 0, 0, w.height);
-      bgGrad.addColorStop(0, '#031b33');
-      bgGrad.addColorStop(0.55, '#020d1c');
-      bgGrad.addColorStop(1, '#01050c');
+      bgGrad.addColorStop(0, '#D6F0FF');
+      bgGrad.addColorStop(0.55, '#9BD8FA');
+      bgGrad.addColorStop(1, '#5BA8E6');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, w.width, w.height);
 
-      // Névoa de Maré Ácida se o afixo estiver ativo
+      // Brilho de Água Borbulhante se o afixo estiver ativo
       if ((tele.activeAffixes || []).includes('mare_acida')) {
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
+        ctx.fillStyle = 'rgba(82, 209, 160, 0.14)';
         ctx.fillRect(0, 0, w.width, w.height);
       }
 
-      // Feixes de luz abissal
+      // Feixes de luz solar suaves na água azul-bebê
       ctx.save();
-      const rayGrad = ctx.createRadialGradient(w.width * 0.5, 0, 10, w.width * 0.5, 120, 420);
-      rayGrad.addColorStop(0, 'rgba(0, 229, 255, 0.11)');
-      rayGrad.addColorStop(1, 'rgba(0, 229, 255, 0)');
+      const rayGrad = ctx.createRadialGradient(w.width * 0.5, 0, 15, w.width * 0.5, 130, 440);
+      rayGrad.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+      rayGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = rayGrad;
       ctx.fillRect(0, 0, w.width, w.height);
       ctx.restore();
 
-      // Bolhas subaquáticas
-      ctx.fillStyle = 'rgba(125, 211, 252, 0.22)';
+      // Bolhas subaquáticas claras e brilhantes
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.strokeStyle = 'rgba(2, 132, 199, 0.35)';
+      ctx.lineWidth = 1;
       w.bubbles.forEach((b) => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
       });
 
-      // Leito oceânico (fundo do mar)
-      ctx.fillStyle = '#04101f';
+      // Leito oceânico de areia dourada pastel infantil
+      ctx.fillStyle = '#FDE68A';
       ctx.beginPath();
       ctx.moveTo(0, w.height);
       ctx.lineTo(0, w.height - 28);
@@ -1451,6 +1454,9 @@ export default function OceanCanvas({
       ctx.lineTo(w.width, w.height);
       ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
       // 2. Vetor de Obediência ao Clique (COMANDO_MANUAL - Seção 4.3)
       if (shark.state === 'COMANDO_MANUAL' && shark.targetX !== null && shark.targetY !== null) {
@@ -1713,11 +1719,13 @@ export default function OceanCanvas({
         ctx.restore();
       }
 
-      // Silhueta Bioluminescente Vetorial do Tubarão Alfa
-      const sharkColor = shark.megalodonBuffTimer > 0 ? '#f43f5e' : '#00e5ff';
+      // Silhueta Amigável e Vibrante do Tubarão no Oceano Azul Bebê
+      const sharkColor = shark.megalodonBuffTimer > 0 ? '#FF6B8B' : '#0284C7';
       ctx.fillStyle = sharkColor;
-      ctx.shadowColor = sharkColor;
-      ctx.shadowBlur = 16;
+      ctx.strokeStyle = '#1E3A5F';
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = 'rgba(2, 132, 199, 0.35)';
+      ctx.shadowBlur = 10;
 
       // Corpo hidrodinâmico
       ctx.beginPath();
@@ -1726,14 +1734,26 @@ export default function OceanCanvas({
       ctx.quadraticCurveTo(10, 16, -28, 4);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
+
+      // Barriga clara azul-bebê
+      ctx.fillStyle = '#E0F2FE';
+      ctx.beginPath();
+      ctx.moveTo(-18, 2);
+      ctx.quadraticCurveTo(5, 12, 28, -1);
+      ctx.quadraticCurveTo(6, 4, -18, 2);
+      ctx.closePath();
+      ctx.fill();
 
       // Barbatana dorsal
+      ctx.fillStyle = sharkColor;
       ctx.beginPath();
       ctx.moveTo(-4, -11);
       ctx.lineTo(6, -27);
       ctx.lineTo(14, -9);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
 
       // Cauda propulsora
       ctx.beginPath();
@@ -1743,11 +1763,16 @@ export default function OceanCanvas({
       ctx.lineTo(-42, 14);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
 
-      // Olho predador neon
+      // Olho simpático infantil
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(21, -4, 2.6, 0, Math.PI * 2);
+      ctx.arc(21, -4, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1E3A5F';
+      ctx.beginPath();
+      ctx.arc(22, -4, 2, 0, Math.PI * 2);
       ctx.fill();
 
       // Animação de mordida (Bote Voraz)
@@ -1801,24 +1826,56 @@ export default function OceanCanvas({
   const equippedIds = profile?.habilidadesEquipadas || ['snap_strike', 'tail_sweep'];
   const slot1Skill = SKILLS_CATALOG.find(s => s.id === equippedIds[0]) || SKILLS_CATALOG[0];
   const slot2Skill = SKILLS_CATALOG.find(s => s.id === equippedIds[1]) || SKILLS_CATALOG[1];
+  const diffColorInfo = getDifficultyColorInfo(mapTelemetry?.difficulty, mapTelemetry?.tier);
+  const isInverted = controlMapping?.preset === 'inverted';
+
+  const hudSlots = [
+    {
+      slot: 1,
+      skill: slot1Skill,
+      mainKey: 'Q',
+      mouseLabel: isInverted ? '🖱️ Clique Dir.' : '🖱️ Clique Esq.',
+      extraKey: null,
+      cd: skillCooldownsUi.slot1,
+      idx: 0
+    },
+    {
+      slot: 2,
+      skill: slot2Skill,
+      mainKey: 'W',
+      mouseLabel: isInverted ? '🖱️ Clique Esq.' : '🖱️ Clique Dir.',
+      extraKey: 'ESPAÇO',
+      cd: skillCooldownsUi.slot2,
+      idx: 1
+    }
+  ];
 
   return (
     <div className="abyssal-ocean-panel">
-      {/* Cabeçalho da Coluna Esquerda: Estado da Máquina de Navegação e Densidade */}
+      {/* Cabeçalho da Coluna Esquerda: Zona do Oceano + Indicador de Dificuldade por Cor */}
       <div className="ocean-panel-header">
         <div className="ocean-header-left">
           <span className="ocean-live-dot" data-active={expeditionState === 'em_andamento'} />
-          <span className="ocean-panel-title">OCEANO AO VIVO (T{mapTelemetry?.tier || 1}: {mapTelemetry?.tierName})</span>
+          <span className="ocean-panel-title">OCEANO AO VIVO: {mapTelemetry?.tierName || 'Recifes Claros'}</span>
         </div>
         <div className="ocean-state-badges">
           <span
+            className="ocean-difficulty-color-pill"
+            style={{
+              backgroundColor: diffColorInfo.bgLight,
+              color: diffColorInfo.textColor,
+              border: `1.5px solid ${diffColorInfo.color}`
+            }}
+          >
+            <Palette size={12} color={diffColorInfo.color} />
+            <span className="color-dot-inline" style={{ backgroundColor: diffColorInfo.color }} />
+            <span>{diffColorInfo.label}</span>
+          </span>
+          <span
             className={`state-machine-pill ${navStateBadge.mode === 'COMANDO_MANUAL' ? 'manual' : 'patrol'}`}
-            title="Máquina de Estados de Navegação (Seção 4.3)"
           >
             <Compass size={12} />
-            {navStateBadge.mode === 'COMANDO_MANUAL'
-              ? `COMANDO_MANUAL (${navStateBadge.targetX}, ${navStateBadge.targetY})`
-              : 'PATRULHA_AUTOMATICA'}
+            {navStateBadge.mode === 'COMANDO_MANUAL' ? 'Nado Direcionado' : 'Nado Livre'}
           </span>
         </div>
       </div>
@@ -1834,17 +1891,23 @@ export default function OceanCanvas({
           onMouseMove={handleCanvasMouseMove}
         />
 
-        {/* Overlay Inicial (Pronto para Mergulhar) */}
+        {/* Overlay Inicial (Pronto para Mergulhar - Com Indicador de Dificuldade por Cor) */}
         {expeditionState === 'pronto' && (
           <div className="ocean-freeze-overlay ready-mode">
             <div className="overlay-card">
-              <div className="overlay-badge">EXPEDIÇÃO ABISSAL PRONTA</div>
-              <h3>Tubarão Alfa Predador — Tier {mapTelemetry?.tier || 1}</h3>
-              <p>
-                Dificuldade Exponencial <strong>D = {mapTelemetry?.difficulty}</strong> • Máx.{' '}
-                <strong>{mapTelemetry?.maxEntities} entidades</strong> na tela • Multiplicador XP{' '}
-                <strong>{mapTelemetry?.xpMultiplier}x</strong>
-              </p>
+              <div
+                className="overlay-badge"
+                style={{
+                  backgroundColor: diffColorInfo.bgLight,
+                  color: diffColorInfo.textColor,
+                  borderColor: diffColorInfo.color
+                }}
+              >
+                <span className="color-dot-inline" style={{ backgroundColor: diffColorInfo.color }} />
+                {diffColorInfo.label}
+              </div>
+              <h3>Tubarão Pronto — {mapTelemetry?.tierName || 'Recifes Claros'}</h3>
+              <p>{diffColorInfo.description}</p>
               <button className="btn-confirm-dive" onClick={onStartExpedition}>
                 <Play size={18} fill="#ffffff" />
                 <span>CONFIRMAR E MERGULHAR</span>
@@ -1857,58 +1920,38 @@ export default function OceanCanvas({
         {expeditionState === 'pausado' && (
           <div className="ocean-freeze-overlay paused-mode">
             <div className="overlay-card">
-              <div className="overlay-badge">SIMULAÇÃO PAUSADA</div>
-              <h3>Física Oceânica Congelada</h3>
-              <p>Você pode inspecionar as 3 abas laterais ou retomar a expedição a qualquer momento.</p>
+              <div className="overlay-badge">JOGO PAUSADO</div>
+              <h3>Oceano Azul Bebê Pausado</h3>
+              <p>Você pode explorar as 3 abas ao lado ou continuar nadando quando quiser!</p>
               <button className="btn-confirm-dive" onClick={onTogglePause}>
                 <Play size={18} fill="#ffffff" />
-                <span>RETOMAR EXPEDIÇÃO</span>
+                <span>CONTINUAR NADANDO</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Tela de Derrota e Reconfiguração (Seção 7 - Sem Reinício Automático!) */}
+        {/* Tela de Derrota e Reconfiguração */}
         {expeditionState === 'derrota' && (
           <div className="ocean-freeze-overlay death-mode">
             <div className="overlay-card death-card">
               <div className="death-header-badge">
-                <Skull size={18} color="#f43f5e" />
-                <span>CICLO DE DERROTA — SIMULAÇÃO 100% CONGELADA</span>
+                <Skull size={18} color="#e11d48" />
+                <span>FIM DO MERGULHO — RECONFIGURE SUA AVENTURA</span>
               </div>
-              <h3>Tubarão Alfa Abatido nas Profundezas (Tier {deathReport?.tier || mapTelemetry?.tier})</h3>
+              <h3>O Tubarão Precisa Descansar!</h3>
 
               <div className="death-analytic-box">
                 <div className="analytic-label">
-                  <ShieldAlert size={14} color="#fa6400" />
-                  <span>Relatório Analítico de Óbito:</span>
+                  <ShieldAlert size={14} color="#e11d48" />
+                  <span>O que aconteceu no mar:</span>
                 </div>
-                <div className="analytic-value">{deathReport?.causaMorte || 'Abatido por Inimigos do Mar'}</div>
-              </div>
-
-              <div className="death-stats-grid">
-                <div className="death-stat-cell">
-                  <span>Sobrevivência</span>
-                  <strong>{deathReport?.tempoSobrevivenciaSegundos || 0}s</strong>
-                </div>
-                <div className="death-stat-cell">
-                  <span>Inimigos Abatidos</span>
-                  <strong>{deathReport?.inimigosAbatidos || 0}</strong>
-                </div>
-                <div className="death-stat-cell">
-                  <span>XP Ganho no Run</span>
-                  <strong style={{ color: '#00e5ff' }}>+{deathReport?.xpTotalGanho || 0} XP</strong>
-                </div>
-                <div className="death-stat-cell">
-                  <span>Biomassa Coletada</span>
-                  <strong style={{ color: '#b03af0' }}>+{deathReport?.biomassaGanha || 0}</strong>
-                </div>
+                <div className="analytic-value">{deathReport?.causaMorte || 'Cansado pelas criaturas do mar'}</div>
               </div>
 
               <p className="death-reconfig-hint">
-                Ajuste livremente suas <strong>Passivas (Aba 1)</strong>, troque as{' '}
-                <strong>2 Habilidades (Aba 2)</strong> ou reconfigure o <strong>Mapa (Aba 3)</strong> antes de
-                autorizar o novo mergulho:
+                Escolha novas esferas na <strong>Aba 1 (Passivas)</strong>, troque suas{' '}
+                <strong>2 Habilidades Ativas (Aba 2)</strong> ou mude a <strong>Cor da Dificuldade (Aba 3)</strong>:
               </p>
 
               <div className="death-quick-tabs">
@@ -1916,10 +1959,10 @@ export default function OceanCanvas({
                   🌳 Aba 1: Passivas ({profile?.pontosPassivaDisponiveis || 0} pts)
                 </button>
                 <button type="button" className="btn-reconfig-tab" onClick={() => onSelectTab('skills')}>
-                  ⚡ Aba 2: Loadout (2 Skills)
+                  ⚡ Aba 2: Habilidades ([Q] e [W])
                 </button>
                 <button type="button" className="btn-reconfig-tab" onClick={() => onSelectTab('mapa')}>
-                  🗺️ Aba 3: Map Device
+                  🎨 Aba 3: Cor da Dificuldade
                 </button>
               </div>
 
@@ -1932,49 +1975,55 @@ export default function OceanCanvas({
         )}
       </div>
 
-      {/* HUD Inferior de Atalhos no Oceano: [Slot 1: Q / Clique E] [Slot 2: W / Clique D] (Seção 2.1 e 4.1) */}
+      {/* HUD Inferior de Habilidades Ativas com Indicadores de Teclas de Atalho Super Visíveis */}
       <div className="ocean-bottom-hud">
         <div className="hud-skills-group">
-          {[
-            { slot: 1, skill: slot1Skill, keyLabel: controlMapping?.slot1 || 'Q / Clique E', cd: skillCooldownsUi.slot1, idx: 0 },
-            { slot: 2, skill: slot2Skill, keyLabel: controlMapping?.slot2 || 'W / Clique D / Espaço', cd: skillCooldownsUi.slot2, idx: 1 }
-          ].map(({ slot, skill, keyLabel, cd, idx }) => {
-            const mult = computeSkillSynergyMultiplier(skill);
-            return (
-              <button
-                key={slot}
-                type="button"
-                className={`hud-skill-slot ${cd > 0 ? 'on-cooldown' : ''}`}
-                style={{ borderColor: skill.color }}
-                onClick={() => executeEquippedSkill(idx, worldRef.current.mouseX, worldRef.current.mouseY)}
-              >
-                <div className="hud-skill-icon" style={{ background: `${skill.color}22`, color: skill.color }}>
-                  <span>{skill.icon}</span>
-                  {cd > 0 && <div className="hud-cd-overlay">{cd}s</div>}
+          {hudSlots.map(({ slot, skill, mainKey, mouseLabel, extraKey, cd, idx }) => (
+            <button
+              key={slot}
+              type="button"
+              className={`hud-skill-slot ${cd > 0 ? 'on-cooldown' : ''}`}
+              style={{ borderColor: skill.color }}
+              onClick={() => executeEquippedSkill(idx, worldRef.current.mouseX, worldRef.current.mouseY)}
+            >
+              {/* Keycap 3D Grande e Aparente Indicando Qual Tecla Ativa a Habilidade */}
+              <div className="hud-keycap-column">
+                <span className="hud-keycap-label">TECLA</span>
+                <kbd className="hud-keycap-3d">{mainKey}</kbd>
+                {extraKey && <kbd className="hud-keycap-mini">{extraKey}</kbd>}
+              </div>
+
+              <div className="hud-skill-icon" style={{ background: `${skill.color}22`, color: skill.color, borderColor: skill.color }}>
+                <span>{skill.icon}</span>
+                {cd > 0 && <div className="hud-cd-overlay">{cd}s</div>}
+              </div>
+
+              <div className="hud-skill-info">
+                <div className="hud-shortcut-banner">
+                  <Keyboard size={12} />
+                  <span>
+                    APERTE <strong>[{mainKey}]</strong> {extraKey ? `ou [${extraKey}]` : ''} • {mouseLabel}
+                  </span>
                 </div>
-                <div className="hud-skill-info">
-                  <div className="hud-skill-top">
-                    <span className="hud-slot-key">Slot {slot}: [{keyLabel}]</span>
-                    <span className="hud-synergy-pill">Sinergia {(mult * 100).toFixed(0)}%</span>
-                  </div>
-                  <div className="hud-skill-name">{skill.shortName}</div>
-                  <div className="hud-skill-meta">
-                    <span>
-                      Custo: <strong>{skill.cost} {skill.resourceType === 'frenesi' ? 'Frenesi' : 'Fôlego'}</strong>
-                    </span>
-                    <span>CD: {skill.cooldown}s</span>
-                  </div>
+                <div className="hud-skill-name">
+                  Habilidade {slot}: {skill.shortName}
                 </div>
-              </button>
-            );
-          })}
+                <div className="hud-skill-meta">
+                  <span>
+                    Custo: <strong>{skill.cost} {skill.resourceType === 'frenesi' ? 'Frenesi' : 'Fôlego'}</strong>
+                  </span>
+                  <span>Recarga: {skill.cooldown}s</span>
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
 
         <div className="hud-ocean-actions">
           {expeditionState === 'em_andamento' || expeditionState === 'pausado' ? (
             <button type="button" className="btn-hud-pause" onClick={onTogglePause}>
               {expeditionState === 'pausado' ? <Play size={15} /> : <Pause size={15} />}
-              <span>{expeditionState === 'pausado' ? 'Retomar' : 'Pausar'}</span>
+              <span>{expeditionState === 'pausado' ? 'Continuar' : 'Pausar'}</span>
             </button>
           ) : null}
         </div>

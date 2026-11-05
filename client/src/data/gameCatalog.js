@@ -216,77 +216,172 @@ export const RARE_AFFIXES_CATALOG = [
 export const MAP_AFFIXES_CATALOG = [
   {
     id: 'mare_rapida',
-    name: 'Maré Rápida (+20% velocidade)',
-    description: 'Inimigos do mar nadam e atacam com +20% de velocidade.',
+    name: 'Maré Rápida',
+    description: 'As correntes marinhas deixam os peixes e criaturas mais velozes e agitados.',
     m: 0.20,
     w: 0.005,
     category: 'Velocidade',
-    color: '#38bdf8'
+    color: '#38bdf8',
+    colorName: 'Cor Azul Bebê'
   },
   {
     id: 'aguas_turvas',
-    name: 'Águas Turvas',
-    description: 'Camuflagem abissal ampliada e +22% de agressividade dos predadores.',
+    name: 'Águas Misteriosas',
+    description: 'Bolinhas e sombras marinhas deixam os habitantes do mar mais atentos.',
     m: 0.22,
     w: 0.08,
     category: 'Ambiente',
-    color: '#8b5cf6'
+    color: '#8b5cf6',
+    colorName: 'Cor Lilás'
   },
   {
     id: 'cardumes_toxicos',
-    name: 'Cardumes Tóxicos',
-    description: 'Águas-vivas proliferam em dobro e aplicam veneno +30% mais letal.',
+    name: 'Cardumes de Águas-Vivas',
+    description: 'Mais águas-vivas coloridas aparecem flutuando pelo oceano.',
     m: 0.28,
     w: 0.09,
     category: 'Veneno',
-    color: '#d946ef'
+    color: '#d946ef',
+    colorName: 'Cor Rosa Doce'
   },
   {
     id: 'enguias_eletricas',
-    name: 'Enguias Elétricas',
-    description: 'Alta concentração de Enguias Elétricas com projéteis sobrecarregados.',
+    name: 'Enguias Brilhantes',
+    description: 'Enguias elétricas nadam em grupo soltando faíscas luminosas.',
     m: 0.42,
     w: 0.18,
     category: 'Elétrico',
-    color: '#facc15'
+    color: '#facc15',
+    colorName: 'Cor Amarela Sol'
   },
   {
     id: 'reflexo_dano',
-    name: 'Reflexo de Dano',
-    description: 'Caranguejos Couraçados e criaturas refletem +25% de espinhos.',
+    name: 'Caranguejos de Casco Duro',
+    description: 'Caranguejos couraçados protegem o fundo do mar com seus cascos espinhosos.',
     m: 0.38,
     w: 0.18,
     category: 'Físico',
-    color: '#f97316'
+    color: '#fb923c',
+    colorName: 'Cor Laranja Coral'
   },
   {
     id: 'inimigos_raros',
-    name: 'Inimigos Raros (Archnemesis)',
-    description: 'Inimigos Raros com auras Criogênica, Vampírica e Espinhos surgem com +45% de frequência.',
+    name: 'Criaturas com Auras Coloridas',
+    description: 'Criaturas especiais com auras brilhantes aparecem com mais frequência.',
     m: 0.55,
     w: 0.28,
     category: 'Raros',
-    color: '#f43f5e'
+    color: '#f43f5e',
+    colorName: 'Cor Vermelha Coral'
   },
   {
     id: 'mare_acida',
-    name: 'Maré Ácida Contínua',
-    description: 'Água corrosiva abissal causa dano contínuo ao tubarão (1.8% HP/s).',
+    name: 'Água Borbulhante Intensa',
+    description: 'A água borbulhante exige que o tubarão se alimente de presas constantemente.',
     m: 0.52,
     w: 0.24,
     category: 'Degeneração',
-    color: '#10b981'
+    color: '#10b981',
+    colorName: 'Cor Verde Menta'
   },
   {
     id: 'leviata_supremo',
-    name: 'Leviatã Supremo (Chefe)',
-    description: 'Invoca o Chefe Leviatã Abissal com tentáculos e ondas de choque letais.',
+    name: 'Chefe Guardião do Oceano',
+    description: 'Desperta o grande Leviatã Guardião com ondas e redemoinhos gigantes.',
     m: 0.65,
     w: 0.35,
     category: 'Chefe',
-    color: '#ec4899'
+    color: '#a855f7',
+    colorName: 'Cor Roxa Real'
   }
 ];
+
+export const DIFFICULTY_COLOR_SCALE = [
+  {
+    id: 'verde',
+    level: 1,
+    color: '#2ED573',
+    bgLight: '#E3FCEF',
+    borderColor: '#52D1A0',
+    textColor: '#065F46',
+    shortName: 'Cor Verde',
+    label: 'Cor Verde — Águas Calmas',
+    description: 'Passeio tranquilo e seguro nas águas rasas azul-bebê.'
+  },
+  {
+    id: 'azul',
+    level: 2,
+    color: '#38BDF8',
+    bgLight: '#E0F2FE',
+    borderColor: '#7DD3FC',
+    textColor: '#0369A1',
+    shortName: 'Cor Azul Bebê',
+    label: 'Cor Azul Bebê — Brisa Suave',
+    description: 'Correnteza leve e divertida com pequenos desafios marinhos.'
+  },
+  {
+    id: 'amarelo',
+    level: 3,
+    color: '#FACC15',
+    bgLight: '#FEF9C3',
+    borderColor: '#FDE047',
+    textColor: '#854D0E',
+    shortName: 'Cor Amarela',
+    label: 'Cor Amarela — Correnteza Agitada',
+    description: 'Águas movimentadas que pedem atenção aos atalhos [Q] e [W].'
+  },
+  {
+    id: 'laranja',
+    level: 4,
+    color: '#FB923C',
+    bgLight: '#FFEDD5',
+    borderColor: '#FDBA74',
+    textColor: '#9A3412',
+    shortName: 'Cor Laranja',
+    label: 'Cor Laranja — Mar Perigoso',
+    description: 'Cardumes intensos e predadores atentos pelo caminho.'
+  },
+  {
+    id: 'vermelho',
+    level: 5,
+    color: '#F43F5E',
+    bgLight: '#FFE4E6',
+    borderColor: '#FDA4AF',
+    textColor: '#9F1239',
+    shortName: 'Cor Vermelha',
+    label: 'Cor Vermelha — Alerta de Predadores',
+    description: 'Grande desafio! Use suas habilidades e passivas em conjunto.'
+  },
+  {
+    id: 'roxo',
+    level: 6,
+    color: '#A855F7',
+    bgLight: '#F3E8FF',
+    borderColor: '#D8B4FE',
+    textColor: '#6B21A8',
+    shortName: 'Cor Roxa',
+    label: 'Cor Roxa — Profundezas Misteriosas',
+    description: 'Dificuldade máxima nas profundezas mágicas do oceano!'
+  }
+];
+
+export function getDifficultyColorInfo(difficulty = 10, tier = 1) {
+  if (difficulty >= 1500 || tier >= 15) return DIFFICULTY_COLOR_SCALE[5]; // Roxo
+  if (difficulty >= 500 || tier >= 12) return DIFFICULTY_COLOR_SCALE[4];  // Vermelho
+  if (difficulty >= 150 || tier >= 9) return DIFFICULTY_COLOR_SCALE[3];   // Laranja
+  if (difficulty >= 40 || tier >= 6) return DIFFICULTY_COLOR_SCALE[2];    // Amarelo
+  if (difficulty >= 15 || tier >= 3) return DIFFICULTY_COLOR_SCALE[1];    // Azul Bebê
+  return DIFFICULTY_COLOR_SCALE[0];                                       // Verde
+}
+
+export function getTierColorInfo(tier = 1) {
+  if (tier >= 15) return DIFFICULTY_COLOR_SCALE[5];
+  if (tier >= 12) return DIFFICULTY_COLOR_SCALE[4];
+  if (tier >= 9) return DIFFICULTY_COLOR_SCALE[3];
+  if (tier >= 6) return DIFFICULTY_COLOR_SCALE[2];
+  if (tier >= 3) return DIFFICULTY_COLOR_SCALE[1];
+  return DIFFICULTY_COLOR_SCALE[0];
+}
 
 export const MAP_TIERS_CATALOG = [
   { tier: 1, name: 'Recifes Claros', depth: '50m', zoneType: 'Seguro' },

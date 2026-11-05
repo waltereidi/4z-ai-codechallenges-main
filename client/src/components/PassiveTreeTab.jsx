@@ -1,11 +1,61 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, Search, Sparkles, Lock, CheckCircle2, Compass } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Search, Compass } from 'lucide-react';
 import { findShortestPathToAllocate, canUnallocateSingleNode, SKILLS_CATALOG } from '../data/gameCatalog';
+
+const TREE_CATEGORIES = {
+  NW: {
+    id: 'NW',
+    color: '#FF6B8B',
+    bgLight: '#FFE4EC',
+    textColor: '#BE123C',
+    shortLabel: 'Cor Rosa Coral',
+    label: 'Rosa Coral (Mordida & Ataque)'
+  },
+  NE: {
+    id: 'NE',
+    color: '#FF9F43',
+    bgLight: '#FFF0E0',
+    textColor: '#C2410C',
+    shortLabel: 'Cor Laranja Sol',
+    label: 'Laranja Sol (Projéteis & Área)'
+  },
+  SW: {
+    id: 'SW',
+    color: '#0284C7',
+    bgLight: '#E0F2FE',
+    textColor: '#0369A1',
+    shortLabel: 'Cor Azul Bebê',
+    label: 'Azul Bebê (Defesa & Fôlego)'
+  },
+  SE: {
+    id: 'SE',
+    color: '#10B981',
+    bgLight: '#D1FAE5',
+    textColor: '#047857',
+    shortLabel: 'Cor Verde Menta',
+    label: 'Verde Menta (Velocidade & Utilidade)'
+  }
+};
+
+function getCategoryByNode(node) {
+  if (!node) return TREE_CATEGORIES.SW;
+  return TREE_CATEGORIES[node.quadrant] || TREE_CATEGORIES.SW;
+}
+
+function cleanSkillName(rawName = '') {
+  return rawName
+    .replace(/^KEYSTONE:\s*/i, '')
+    .replace(/\s*\([A-Z]{2}-\d+\)\s*$/i, '')
+    .trim();
+}
+
+function cleanSkillEffect(rawDesc = '') {
+  return rawDesc.replace(/^Notável:\s*/i, '').trim();
+}
 
 export default function PassiveTreeTab({
   treeData,
   profile,
-  passiveBonuses,
   onAllocateNodes,
   onResetPassives,
   statusMessage
@@ -15,16 +65,15 @@ export default function PassiveTreeTab({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
-  const [selectedTagFilter, setSelectedTagFilter] = useState('ALL');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredNode, setHoveredNode] = useState(null);
 
   const allocatedIds = profile?.nosPassivas || [];
   const allocatedSet = useMemo(() => new Set(['root', ...allocatedIds]), [allocatedIds]);
   const pointsAvailable = profile?.pontosPassivaDisponiveis ?? 1;
-  const currentLevel = profile?.nivel || 1;
 
-  // Tags das 2 habilidades equipadas atualmente para destacar sinergias na árvore
+  // Tags das 2 habilidades equipadas atualmente para destacar sinergias visuais na árvore
   const equippedSkillTags = useMemo(() => {
     const eq = profile?.habilidadesEquipadas || ['snap_strike', 'tail_sweep'];
     const tags = new Set();
@@ -35,7 +84,7 @@ export default function PassiveTreeTab({
     return tags;
   }, [profile?.habilidadesEquipadas]);
 
-  // Caminho mais curto até o nó sob o cursor (auto-pathing estilo Path of Exile)
+  // Caminho mais curto até o nó sob o cursor
   const previewPath = useMemo(() => {
     if (!hoveredNode || hoveredNode.id === 'root' || allocatedSet.has(hoveredNode.id)) return [];
     return findShortestPathToAllocate(treeData, allocatedIds, hoveredNode.id);
@@ -78,18 +127,23 @@ export default function PassiveTreeTab({
     if (q === 'CENTER') {
       setPan({ x: 0, y: 0 });
       setZoom(0.46);
+      setSelectedCategoryFilter('ALL');
     } else if (q === 'NW') {
       setPan({ x: 145, y: 145 });
       setZoom(0.62);
+      setSelectedCategoryFilter('NW');
     } else if (q === 'NE') {
       setPan({ x: -145, y: 145 });
       setZoom(0.62);
+      setSelectedCategoryFilter('NE');
     } else if (q === 'SW') {
       setPan({ x: 145, y: -145 });
       setZoom(0.62);
+      setSelectedCategoryFilter('SW');
     } else if (q === 'SE') {
       setPan({ x: -145, y: -145 });
       setZoom(0.62);
+      setSelectedCategoryFilter('SE');
     }
   };
 
@@ -97,7 +151,6 @@ export default function PassiveTreeTab({
     if (!node || node.id === 'root') return;
 
     if (allocatedSet.has(node.id)) {
-      // Tenta desalocar se não quebrar a conectividade do grafo
       if (canUnallocateSingleNode(treeData, allocatedIds, node.id)) {
         const nextIds = allocatedIds.filter(id => id !== node.id);
         onAllocateNodes(nextIds);
@@ -105,7 +158,6 @@ export default function PassiveTreeTab({
       return;
     }
 
-    // Aloca caminho mais curto conectado se houver pontos disponíveis
     const pathToAllocate = findShortestPathToAllocate(treeData, allocatedIds, node.id);
     if (pathToAllocate.length === 0) return;
 
@@ -116,81 +168,89 @@ export default function PassiveTreeTab({
   };
 
   if (!treeData) {
-    return <div className="tab-loading">Carregando Árvore de 300 Passivas...</div>;
+    return <div className="tab-loading">Carregando Árvore de Passivas...</div>;
   }
 
-  const tagFilters = ['ALL', 'KEYSTONE', 'NOTABLE', 'Mordida', 'Projétil', 'Área', 'Sangramento', 'Defesa', 'Movimento', 'Grito', 'Buff'];
+  const hoveredCat = hoveredNode ? getCategoryByNode(hoveredNode) : null;
 
   return (
     <div className="passive-tree-tab">
-      {/* Banner da Regra de Ouro 1:10 (Seção 5.1) */}
-      <div className="golden-ratio-banner">
-        <div className="ratio-banner-top">
-          <span className="ratio-title">
-            🌳 REGRA DA PROPORÇÃO 1:10 — <strong style={{ color: '#00e5ff' }}>300 Nós</strong> (Teto: Nv.30 = 30 pts / 10%)
+      {/* Barra Superior Limpa (Sem Regra de Proporção 1:10) */}
+      <div className="passive-top-toolbar">
+        <div className="points-badges">
+          <span className="pt-badge allocated">
+            Passivas Ativas: <strong>{allocatedIds.length}</strong>
           </span>
-          <span className="ratio-counts-pill">
-            210 Menores • 72 Notáveis • 18 Keystones
+          <span className="pt-badge available">
+            Pontos Livres: <strong>{pointsAvailable}</strong>
           </span>
         </div>
-        <div className="ratio-Points-row">
-          <div className="points-badges">
-            <span className="pt-badge allocated">
-              Alocados: <strong>{allocatedIds.length} / 30</strong> ({((allocatedIds.length / 300) * 100).toFixed(1)}% da Árvore)
-            </span>
-            <span className="pt-badge available">
-              Disponíveis (Nv.{currentLevel}): <strong>{pointsAvailable} pts</strong>
-            </span>
-          </div>
-          <button
-            type="button"
-            className="btn-respec-tree"
-            onClick={onResetPassives}
-            disabled={allocatedIds.length === 0}
-            title="Reembolsar todos os pontos alocados para reconfigurar a build"
-          >
-            <RotateCcw size={13} />
-            <span>Reembolsar ({allocatedIds.length})</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn-respec-tree"
+          onClick={onResetPassives}
+          disabled={allocatedIds.length === 0}
+          title="Reembolsar pontos de passiva"
+        >
+          <RotateCcw size={13} />
+          <span>Reembolsar Pontos</span>
+        </button>
       </div>
 
-      {/* Controles de Quadrante, Busca e Filtro de Tags */}
+      {/* Controles de Categoria por Cor da Árvore e Busca */}
       <div className="tree-controls-bar">
         <div className="quadrant-jump-btns">
-          <button type="button" onClick={() => focusQuadrant('CENTER')} className="q-btn center">Origem</button>
-          <button type="button" onClick={() => focusQuadrant('NW')} className="q-btn nw" title="75 Nós: Mandíbula & Carnificina">NO: Mordida (75)</button>
-          <button type="button" onClick={() => focusQuadrant('NE')} className="q-btn ne" title="75 Nós: Farpas & Elementos">NE: Projétil (75)</button>
-          <button type="button" onClick={() => focusQuadrant('SW')} className="q-btn sw" title="75 Nós: Leviatã das Fendas">SO: Defesa (75)</button>
-          <button type="button" onClick={() => focusQuadrant('SE')} className="q-btn se" title="75 Nós: Magnetismo Abissal QoL">SE: QoL (75)</button>
+          <button
+            type="button"
+            onClick={() => focusQuadrant('CENTER')}
+            className={`q-btn center ${selectedCategoryFilter === 'ALL' ? 'active-cat' : ''}`}
+          >
+            🌈 Todas as Cores
+          </button>
+          <button
+            type="button"
+            onClick={() => focusQuadrant('NW')}
+            className={`q-btn nw ${selectedCategoryFilter === 'NW' ? 'active-cat' : ''}`}
+          >
+            🌸 Rosa Coral
+          </button>
+          <button
+            type="button"
+            onClick={() => focusQuadrant('NE')}
+            className={`q-btn ne ${selectedCategoryFilter === 'NE' ? 'active-cat' : ''}`}
+          >
+            ☀️ Laranja Sol
+          </button>
+          <button
+            type="button"
+            onClick={() => focusQuadrant('SW')}
+            className={`q-btn sw ${selectedCategoryFilter === 'SW' ? 'active-cat' : ''}`}
+          >
+            💧 Azul Bebê
+          </button>
+          <button
+            type="button"
+            onClick={() => focusQuadrant('SE')}
+            className={`q-btn se ${selectedCategoryFilter === 'SE' ? 'active-cat' : ''}`}
+          >
+            🌿 Verde Menta
+          </button>
         </div>
 
         <div className="tree-filter-row">
-          <div className="tree-search-box">
-            <Search size={13} />
+          <div className="tree-search-box full-search">
+            <Search size={14} />
             <input
               type="text"
-              placeholder="Buscar nó, tag ou Keystone..."
+              placeholder="Buscar pelo nome da habilidade ou efeito..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="tag-pills-scroll">
-            {tagFilters.map((tf) => (
-              <button
-                key={tf}
-                type="button"
-                className={`tag-filter-pill ${selectedTagFilter === tf ? 'active' : ''}`}
-                onClick={() => setSelectedTagFilter(tf)}
-              >
-                {tf === 'ALL' ? 'Todos (300)' : tf === 'KEYSTONE' ? '★ Keystones (18)' : tf === 'NOTABLE' ? '◆ Notáveis (72)' : `[${tf}]`}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Visualizador Interativo do Grafo de 300 Nós com Zoom e Pan */}
+      {/* Visualizador Interativo do Grafo em Tema Infantil Azul Bebê */}
       <div
         className="passive-graph-viewport"
         onMouseDown={handleMouseDown}
@@ -204,33 +264,32 @@ export default function PassiveTreeTab({
           <button type="button" onClick={() => setZoom(z => Math.min(1.45, Number((z + 0.12).toFixed(2))))} title="Aumentar Zoom">
             <ZoomIn size={15} />
           </button>
-          <span className="zoom-pct">{Math.round(zoom * 100)}%</span>
           <button type="button" onClick={() => setZoom(z => Math.max(0.24, Number((z - 0.12).toFixed(2))))} title="Reduzir Zoom">
             <ZoomOut size={15} />
           </button>
-          <button type="button" onClick={() => focusQuadrant('CENTER')} title="Centralizar Grafo">
+          <button type="button" onClick={() => focusQuadrant('CENTER')} title="Centralizar Árvore">
             <Compass size={15} />
           </button>
         </div>
 
         <svg className="passive-graph-svg" viewBox="-420 -360 840 720">
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-            {/* Divisórias sutis dos 4 Quadrantes */}
-            <line x1="-820" y1="0" x2="820" y2="0" stroke="rgba(148, 163, 184, 0.14)" strokeDasharray="8 8" strokeWidth="2" />
-            <line x1="0" y1="-820" x2="0" y2="820" stroke="rgba(148, 163, 184, 0.14)" strokeDasharray="8 8" strokeWidth="2" />
+            {/* Divisórias suaves das 4 Categorias de Cores */}
+            <line x1="-820" y1="0" x2="820" y2="0" stroke="rgba(2, 132, 199, 0.2)" strokeDasharray="10 10" strokeWidth="2.5" />
+            <line x1="0" y1="-820" x2="0" y2="820" stroke="rgba(2, 132, 199, 0.2)" strokeDasharray="10 10" strokeWidth="2.5" />
 
-            {/* Rótulos dos 4 Quadrantes no Fundo do Grafo */}
-            <text x="-520" y="-560" fill="rgba(244, 63, 94, 0.45)" fontSize="22" fontWeight="bold" textAnchor="middle">
-              Q1 NOROESTE: MANDÍBULA & CARNIFICINA (75 NÓS)
+            {/* Rótulos das 4 Categorias por Cor da Árvore */}
+            <text x="-520" y="-560" fill="#E11D48" fontSize="22" fontWeight="800" textAnchor="middle">
+              CATEGORIA ROSA CORAL (MORDIDA & ATAQUE)
             </text>
-            <text x="520" y="-560" fill="rgba(250, 100, 0, 0.45)" fontSize="22" fontWeight="bold" textAnchor="middle">
-              Q2 NORDESTE: FARPAS & ELEMENTOS (75 NÓS)
+            <text x="520" y="-560" fill="#EA580C" fontSize="22" fontWeight="800" textAnchor="middle">
+              CATEGORIA LARANJA SOL (PROJÉTEIS & ÁREA)
             </text>
-            <text x="-520" y="590" fill="rgba(0, 229, 255, 0.45)" fontSize="22" fontWeight="bold" textAnchor="middle">
-              Q3 SUDOESTE: LEVIATÃ DAS FENDAS (75 NÓS)
+            <text x="-520" y="590" fill="#0284C7" fontSize="22" fontWeight="800" textAnchor="middle">
+              CATEGORIA AZUL BEBÊ (DEFESA & FÔLEGO)
             </text>
-            <text x="520" y="590" fill="rgba(16, 185, 129, 0.45)" fontSize="22" fontWeight="bold" textAnchor="middle">
-              Q4 SUDESTE: MAGNETISMO ABISSAL QoL (75 NÓS)
+            <text x="520" y="590" fill="#059669" fontSize="22" fontWeight="800" textAnchor="middle">
+              CATEGORIA VERDE MENTA (VELOCIDADE & UTILIDADE)
             </text>
 
             {/* Arestas do Grafo */}
@@ -254,58 +313,59 @@ export default function PassiveTreeTab({
                   y2={targetNode.y}
                   stroke={
                     bothAllocated
-                      ? '#00e5ff'
+                      ? '#0284C7'
                       : inPreview
-                      ? '#facc15'
-                      : 'rgba(148, 163, 184, 0.24)'
+                      ? '#F59E0B'
+                      : 'rgba(100, 149, 200, 0.35)'
                   }
-                  strokeWidth={bothAllocated ? 4.2 : inPreview ? 3.2 : 1.6}
+                  strokeWidth={bothAllocated ? 4.5 : inPreview ? 3.5 : 1.8}
                 />
               );
             })}
 
             {/* Nó Raiz Central: Núcleo Ancestral */}
             <g transform="translate(0, 0)">
-              <circle r={24} fill="#0f172a" stroke="#00e5ff" strokeWidth={4} />
-              <circle r={12} fill="#00e5ff" />
-              <text y={38} fill="#ffffff" fontSize="14" fontWeight="bold" textAnchor="middle">
-                Núcleo Ancestral
+              <circle r={25} fill="#FFFFFF" stroke="#0284C7" strokeWidth={4.5} />
+              <circle r={13} fill="#38BDF8" />
+              <text y={42} fill="#1E3A5F" fontSize="15" fontWeight="800" textAnchor="middle">
+                Origem Azul Bebê
               </text>
             </g>
 
-            {/* Os 300 Nós da Árvore */}
+            {/* Nós da Árvore Coloridos por Categoria */}
             {treeData.nodes.map((node) => {
               const isAllocated = allocatedSet.has(node.id);
               const isPreview = previewPathSet.has(node.id);
+              const cat = getCategoryByNode(node);
+
+              const cleanedName = cleanSkillName(node.name);
+              const cleanedEffect = cleanSkillEffect(node.description);
+
               const matchesSearch =
                 !searchQuery.trim() ||
-                node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                node.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                node.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+                cleanedName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                cleanedEffect.toLowerCase().includes(searchQuery.toLowerCase());
 
-              const matchesFilter =
-                selectedTagFilter === 'ALL' ||
-                (selectedTagFilter === 'KEYSTONE' && node.type === 'keystone') ||
-                (selectedTagFilter === 'NOTABLE' && node.type === 'notable') ||
-                node.tags.includes(selectedTagFilter);
+              const matchesCategory =
+                selectedCategoryFilter === 'ALL' || node.quadrant === selectedCategoryFilter;
 
-              const highlighted = matchesSearch && matchesFilter;
+              const highlighted = matchesSearch && matchesCategory;
               const hasEquippedSynergy = node.tags.some(t => equippedSkillTags.has(t));
 
-              const radius = node.type === 'keystone' ? 18 : node.type === 'notable' ? 12.5 : 8.5;
+              const radius = node.type === 'keystone' ? 17 : node.type === 'notable' ? 12.5 : 9;
               const strokeColor = isAllocated
-                ? '#ffffff'
+                ? '#1E3A5F'
                 : isPreview
-                ? '#facc15'
+                ? '#F59E0B'
                 : hasEquippedSynergy
-                ? node.color
-                : 'rgba(148, 163, 184, 0.45)';
+                ? cat.color
+                : 'rgba(30, 58, 95, 0.35)';
 
               const fillColor = isAllocated
-                ? node.color
+                ? cat.color
                 : isPreview
-                ? 'rgba(250, 204, 21, 0.45)'
-                : '#091326';
+                ? '#FDE047'
+                : '#FFFFFF';
 
               return (
                 <g
@@ -313,7 +373,7 @@ export default function PassiveTreeTab({
                   transform={`translate(${node.x}, ${node.y})`}
                   style={{
                     cursor: 'pointer',
-                    opacity: highlighted ? 1 : 0.18
+                    opacity: highlighted ? 1 : 0.2
                   }}
                   onMouseEnter={() => setHoveredNode(node)}
                   onClick={(e) => {
@@ -321,25 +381,18 @@ export default function PassiveTreeTab({
                     handleNodeClick(node);
                   }}
                 >
-                  {node.type === 'keystone' && (
-                    <circle
-                      r={radius + 5}
-                      fill="none"
-                      stroke={isAllocated ? '#facc15' : node.color}
-                      strokeWidth={2}
-                      strokeDasharray="4 3"
-                    />
-                  )}
                   <circle
                     r={radius}
                     fill={fillColor}
                     stroke={strokeColor}
-                    strokeWidth={isAllocated ? 3.5 : node.type === 'notable' ? 2.5 : 1.5}
+                    strokeWidth={isAllocated ? 3.5 : 2.2}
                   />
-                  {node.type === 'keystone' && (
-                    <text y={5} fill="#ffffff" fontSize="13" fontWeight="bold" textAnchor="middle">
-                      ★
-                    </text>
+                  {!isAllocated && (
+                    <circle
+                      r={Math.max(3.5, radius - 4)}
+                      fill={cat.color}
+                      opacity={0.75}
+                    />
                   )}
                 </g>
               );
@@ -347,74 +400,39 @@ export default function PassiveTreeTab({
           </g>
         </svg>
 
-        {/* Tooltip Detalhado do Nó Selecionado / Sob o Cursor */}
+        {/* Inspetor Simplificado: APENAS Tipo de Categoria (Cor da Árvore), Nome da Habilidade e Efeitos */}
         <div className="passive-node-inspector" onMouseDown={(e) => e.stopPropagation()}>
-          {hoveredNode ? (
-            <>
+          {hoveredNode && hoveredCat ? (
+            <div className="inspector-simplified-content">
               <div className="inspector-header">
                 <span
-                  className={`inspector-type-badge ${hoveredNode.type}`}
-                  style={{ borderColor: hoveredNode.color, color: hoveredNode.color }}
+                  className="inspector-type-badge"
+                  style={{
+                    backgroundColor: hoveredCat.bgLight,
+                    borderColor: hoveredCat.color,
+                    color: hoveredCat.textColor
+                  }}
                 >
-                  {hoveredNode.type === 'keystone'
-                    ? '★ CHAVE ANGULAR (KEYSTONE)'
-                    : hoveredNode.type === 'notable'
-                    ? '◆ NÓ NOTÁVEL'
-                    : '● NÓ MENOR'}
+                  <span className="cat-color-dot" style={{ backgroundColor: hoveredCat.color }} />
+                  Tipo de Categoria: {hoveredCat.label}
                 </span>
-                <span className="inspector-quad">{hoveredNode.quadrantShortName}</span>
               </div>
-              <div className="inspector-name">{hoveredNode.name}</div>
-              <div className="inspector-tags">
-                {hoveredNode.tags.map((t) => (
-                  <span
-                    key={t}
-                    className={`inspector-tag-pill ${equippedSkillTags.has(t) ? 'synergy-match' : ''}`}
-                  >
-                    [{t}] {equippedSkillTags.has(t) ? '⚡' : ''}
-                  </span>
-                ))}
+              <div className="inspector-name">
+                <strong>Nome da Habilidade:</strong> {cleanSkillName(hoveredNode.name)}
               </div>
-              <p className="inspector-desc">{hoveredNode.description}</p>
-              <div className="inspector-action-hint">
-                {allocatedSet.has(hoveredNode.id) ? (
-                  <span style={{ color: '#34d399' }}>
-                    ✔ Nó Alocado — Clique para desalocar (se for extremidade da rota)
-                  </span>
-                ) : previewPath.length <= pointsAvailable && allocatedIds.length + previewPath.length <= 30 ? (
-                  <span style={{ color: '#facc15' }}>
-                    ⚡ Clique para alocar rota ({previewPath.length} {previewPath.length === 1 ? 'ponto' : 'pontos'})
-                  </span>
-                ) : (
-                  <span style={{ color: '#f87171' }}>
-                    🔒 Requer {previewPath.length} pts livres (Disponíveis: {pointsAvailable} | Cap 30/300)
-                  </span>
-                )}
-              </div>
-            </>
+              <p className="inspector-desc">
+                <strong>Efeitos:</strong> {cleanSkillEffect(hoveredNode.description)}
+              </p>
+            </div>
           ) : (
             <div className="inspector-empty">
-              Passe o mouse sobre qualquer um dos <strong>300 nós</strong> do grafo para inspecionar seus bônus e rota de conexão, ou clique para alocar.
+              Passe o mouse sobre qualquer esfera colorida da árvore para ver o <strong>Tipo de Categoria (Cor)</strong>, o <strong>Nome da Habilidade</strong> e os <strong>Seus Efeitos</strong>.
             </div>
           )}
         </div>
       </div>
 
-      {/* Resumo de Keystones e Bônus Ativos da Árvore */}
-      <div className="passive-summary-footer">
-        <div className="summary-tags-row">
-          {Object.entries(passiveBonuses?.tagMultipliers || {}).map(([tag, mult]) => (
-            <div
-              key={tag}
-              className={`summary-tag-chip ${mult > 1 ? 'boosted' : ''} ${equippedSkillTags.has(tag) ? 'equipped-tag' : ''}`}
-            >
-              <span>[{tag}]</span>
-              <strong>{Math.round(mult * 100)}%</strong>
-            </div>
-          ))}
-        </div>
-        {statusMessage && <div className="tree-status-msg">{statusMessage}</div>}
-      </div>
+      {statusMessage && <div className="tree-status-msg">{statusMessage}</div>}
     </div>
   );
 }

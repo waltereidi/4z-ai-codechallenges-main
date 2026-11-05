@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Waves, TreePine, Zap, Map, Database, RotateCcw, Award, Flame, Heart, Wind } from 'lucide-react';
+import { Database, Award, Flame, Heart, Wind, Keyboard } from 'lucide-react';
 import OceanCanvas from './components/OceanCanvas';
-import CenterTelemetryColumn from './components/CenterTelemetryColumn';
 import PassiveTreeTab from './components/PassiveTreeTab';
 import SkillsLoadoutTab from './components/SkillsLoadoutTab';
 import MapDeviceTab from './components/MapDeviceTab';
-import { calculateMapTelemetry } from './data/gameCatalog';
+import { calculateMapTelemetry, getDifficultyColorInfo } from './data/gameCatalog';
 import './App.css';
 
 async function apiRequest(endpoint, options = {}) {
@@ -149,7 +148,7 @@ export default function App() {
     });
     if (data && data.success) {
       applyServerPayload(data);
-      setStatusMessage(`✔ Árvore atualizada (${nodeIds.length}/30 nós alocados).`);
+      setStatusMessage('✔ Árvore de passivas atualizada com sucesso!');
     } else if (data?.error) {
       setStatusMessage(`⚠️ ${data.error}`);
     }
@@ -286,36 +285,36 @@ export default function App() {
     ? Math.min(100, Math.round((profile.xpAtual / profile.xpProximoNivel) * 100))
     : 100;
 
+  const currentDiffColor = getDifficultyColorInfo(mapTelemetry?.difficulty, selectedTier);
+
   return (
     <div className="abyssal-app-shell">
       {/* =====================================================================
-          TOPBAR: Nível do Tubarão (Cap 30 / 10% da Árvore) | Barra de XP | Biomassa | HP | Fôlego | Frenesi
+          TOPBAR INFANTIL (AZUL BEBÊ): Nível do Tubarão | Barra de XP | Biomassa | HP | Fôlego | Frenesi
           ===================================================================== */}
       <header className="abyssal-topbar">
         <div className="topbar-brand">
           <img src="/logo-4zoom-branco.png" alt="4zOOm" className="topbar-logo" />
           <div className="brand-titles">
-            <h1>SHARK TANK: ABYSSAL EXILE</h1>
-            <span className="brand-subtitle">Cookie Clicker Incremental × Path of Exile ARPG</span>
+            <h1>SHARK TANK: OCEANO AZUL BEBÊ</h1>
+            <span className="brand-subtitle">Aventura Submarina Colorida • Use [Q] e [W] para Habilidades!</span>
           </div>
         </div>
 
         <div className="topbar-telemetry-strip">
-          {/* Nível do Tubarão (Cap 30 / 10% da Árvore de 300 Nós) */}
+          {/* Nível do Tubarão */}
           <div className="top-stat-pill level-pill">
-            <Award size={15} color="#facc15" />
+            <Award size={16} color="#eab308" />
             <div>
-              <span className="top-pill-label">NÍVEL (REGRA 1:10)</span>
-              <strong>
-                Nv. {profile.nivel} / 30 <small>({profile.pontosPassivaAlocados}/300 nós)</small>
-              </strong>
+              <span className="top-pill-label">NÍVEL DO TUBARÃO</span>
+              <strong>Nv. {profile.nivel}</strong>
             </div>
             {profile.pontosPassivaDisponiveis > 0 && (
               <button
                 type="button"
                 className="unspent-points-badge"
                 onClick={() => setActiveTab('passivas')}
-                title="Clique para alocar pontos de passiva disponíveis"
+                title="Clique para usar seus pontos de passiva disponíveis"
               >
                 +{profile.pontosPassivaDisponiveis} pt{profile.pontosPassivaDisponiveis > 1 ? 's' : ''}
               </button>
@@ -325,7 +324,7 @@ export default function App() {
           {/* Barra de XP */}
           <div className="top-stat-pill xp-pill">
             <div className="xp-pill-header">
-              <span>XP ({xpRatioPct}%)</span>
+              <span>EXPERIÊNCIA</span>
               <strong>{profile.xpAtual} / {profile.xpProximoNivel}</strong>
             </div>
             <div className="top-xp-bar">
@@ -335,34 +334,34 @@ export default function App() {
 
           {/* Biomassa */}
           <div className="top-stat-pill biomass-pill">
-            <Database size={14} color="#b03af0" />
+            <Database size={15} color="#9333ea" />
             <div>
               <span className="top-pill-label">BIOMASSA</span>
-              <strong style={{ color: '#e879f9' }}>{profile.biomassa.toLocaleString('pt-BR')}</strong>
+              <strong style={{ color: '#7e22ce' }}>{profile.biomassa.toLocaleString('pt-BR')}</strong>
             </div>
           </div>
 
           {/* HP Atual / Máx */}
           <div className="top-stat-pill hp-pill">
-            <Heart size={14} color="#10b981" />
+            <Heart size={15} color="#e11d48" />
             <div>
-              <span className="top-pill-label">HP ATUAL / MÁX</span>
-              <strong style={{ color: '#34d399' }}>{liveTelemetry.hp} / {liveTelemetry.maxHp}</strong>
+              <span className="top-pill-label">VIDA (HP)</span>
+              <strong style={{ color: '#be123c' }}>{liveTelemetry.hp} / {liveTelemetry.maxHp}</strong>
             </div>
           </div>
 
           {/* Fôlego */}
           <div className="top-stat-pill folego-pill">
-            <Wind size={14} color="#00e5ff" />
+            <Wind size={15} color="#0284c7" />
             <div>
               <span className="top-pill-label">FÔLEGO</span>
-              <strong style={{ color: '#38bdf8' }}>{liveTelemetry.folego} / {liveTelemetry.maxFolego}</strong>
+              <strong style={{ color: '#0369a1' }}>{liveTelemetry.folego} / {liveTelemetry.maxFolego}</strong>
             </div>
           </div>
 
           {/* Frenesi (●●○) */}
           <div className="top-stat-pill frenzy-pill">
-            <Flame size={14} color="#f43f5e" />
+            <Flame size={15} color="#f97316" />
             <div>
               <span className="top-pill-label">FRENESI</span>
               <strong className="top-frenzy-dots">
@@ -378,11 +377,10 @@ export default function App() {
       </header>
 
       {/* =====================================================================
-          LAYOUT TRIPARTIDO ESTILO COOKIE CLICKER (42% | 20% | 38%)
-          Visualização 100% Contínua: O oceano nunca é ocultado durante os menus
+          LAYOUT BIPARTIDO (56% | 44%) — SEM COLUNA DE TELEMETRIA & COMBATE RÁPIDO
           ===================================================================== */}
       <main className="abyssal-tripartite-grid">
-        {/* COLUNA ESQUERDA (42%): Oceano ao Vivo & Combate em Tempo Real */}
+        {/* COLUNA ESQUERDA (56%): Oceano ao Vivo & Combate em Tempo Real */}
         <section className="tri-col col-left-ocean">
           <OceanCanvas
             profile={profile}
@@ -401,19 +399,7 @@ export default function App() {
           />
         </section>
 
-        {/* COLUNA CENTRAL (20%): Telemetria e Combate Rápido */}
-        <section className="tri-col col-center-telemetry">
-          <CenterTelemetryColumn
-            profile={profile}
-            liveTelemetry={liveTelemetry}
-            mapTelemetry={mapTelemetry}
-            passiveBonuses={passiveBonuses}
-            combatLog={combatLog}
-            recentExpeditions={recentExpeditions}
-          />
-        </section>
-
-        {/* COLUNA DIREITA (38%): Painel de Gestão - 3 Abas Permanentes */}
+        {/* COLUNA DIREITA (44%): Painel de Gestão - 3 Abas Permanentes */}
         <section className="tri-col col-right-management">
           <div className="persistent-tabs-bar">
             <button
@@ -422,7 +408,7 @@ export default function App() {
               onClick={() => setActiveTab('passivas')}
             >
               <span>🌳 Passivas</span>
-              <small className="tab-badge">{profile.pontosPassivaAlocados}/30</small>
+              <small className="tab-badge">{profile.pontosPassivaAlocados} pts</small>
             </button>
 
             <button
@@ -430,8 +416,8 @@ export default function App() {
               className={`persistent-tab-btn ${activeTab === 'skills' ? 'active' : ''}`}
               onClick={() => setActiveTab('skills')}
             >
-              <span>⚡ Skills</span>
-              <small className="tab-badge">2 Slots</small>
+              <span>⚡ Habilidades</span>
+              <small className="tab-badge">[Q] e [W]</small>
             </button>
 
             <button
@@ -439,8 +425,18 @@ export default function App() {
               className={`persistent-tab-btn ${activeTab === 'mapa' ? 'active' : ''}`}
               onClick={() => setActiveTab('mapa')}
             >
-              <span>🗺️ Dificuldade</span>
-              <small className="tab-badge">T{selectedTier}</small>
+              <span>🎨 Dificuldade</span>
+              <small
+                className="tab-badge difficulty-color-dot-badge"
+                style={{
+                  backgroundColor: currentDiffColor.bgLight,
+                  color: currentDiffColor.textColor,
+                  border: `1.5px solid ${currentDiffColor.color}`
+                }}
+              >
+                <span className="color-dot-inline" style={{ backgroundColor: currentDiffColor.color }} />
+                {currentDiffColor.shortName}
+              </small>
             </button>
           </div>
 
@@ -483,14 +479,18 @@ export default function App() {
       </main>
 
       {/* =====================================================================
-          FOOTER OFICIAL (Seção 2.1)
+          FOOTER COM INDICADORES DE ATALHOS VISÍVEIS
           ===================================================================== */}
       <footer className="abyssal-footer">
-        <div>
-          <strong>Frontend:</strong> React (Vite) @ <code>localhost:5173</code> | <strong>SQLite WAL Backend</strong>
+        <div className="footer-left">
+          <strong>Shark Tank:</strong> React (Vite) @ <code>localhost:5173</code>
         </div>
-        <div>
-          <strong>Atalhos Rápidos:</strong> <code>[Q, W, Cliques E/D, Espaço, Tab]</code> • Regra 1:10 (300 Nós / Cap Nível 30)
+        <div className="footer-shortcuts">
+          <Keyboard size={14} />
+          <strong>Teclas de Atalho das Habilidades Ativas:</strong>
+          <span className="footer-key-pill">Tecla [ Q ] / Clique Esq. → Habilidade 1</span>
+          <span className="footer-key-pill">Tecla [ W ] / [ Espaço ] / Clique Dir. → Habilidade 2</span>
+          <span className="footer-key-pill">Tecla [ Tab ] → Trocar Aba</span>
         </div>
       </footer>
     </div>

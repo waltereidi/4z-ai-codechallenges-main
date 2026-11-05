@@ -1,3 +1,4 @@
+**prompt 1 
 gere uma spec para o projeto atual na pasta /home/walter/repos/4z5s/4z-ai-codechallenges-main/prompts com o nome spec11152026.txt 
 que modifique a interface do jogo e remova a telemetria & combate rápido
 modifique o tema da tela para utilizar cores com tonalidade infantil e que combinem com a tonalidade azul bebe 
@@ -7,5 +8,10 @@ atalho ativa cada habilidade ativa
 para tipo de categoria que se refere a cor da arvore de passivas. 
 remova as informações que contenham [mordida] 120% e todas as porcentagens logo abaixo e remova as informações de regras de proporções.
 
+** prompt 2 
 ---adicione a spec para que sejam removidos os indicativos de multiplicadores e calculo do jogo, deixando apenas a indicadores de
 dificuldade por cores 
+
+
+** prompt 3 
+--- aplicado spec gerada ::::
