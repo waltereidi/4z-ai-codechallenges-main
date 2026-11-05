@@ -28,3 +28,12 @@ remova a seleção de categorias na aba de arvore de habilidades
 faça com que o jogo reinicie seu estado toda vez que reiniciar o browser, aplique algum mecanismo que 
 seja possível identificar a sessão atual e quando o jogo recarregou totalmente a tela.
 
+** prompt 5 
+ faça uma medição que indique quais as configurações minimas para rodar esta aplicação em um servidor web na ibm cloud
+
+** prompt 6 
+deixe a aplicação compatível com a resolução mobile 
+
+** prompt 7 
+em resolução mobile as duas habilidades deve ocupar uma unica linha e devem ficar visivel junto com a tela de ação , 
+faça uma pesquisa nas resoluções mais utilizadas para quando o dispositivo móvel está em modo paisagem

@@ -759,6 +759,39 @@ export default function OceanCanvas({
     worldRef.current.mouseY = (e.clientY - rect.top) * scaleY;
   };
 
+  const handleCanvasTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+
+    worldRef.current.mouseX = x;
+    worldRef.current.mouseY = y;
+
+    // Toque com 2 dedos aciona Slot 2; toque simples aciona Slot 1 / direção do nado
+    const slotIdx = e.touches.length >= 2 ? 1 : 0;
+    issueManualClickCommand(x, y, slotIdx);
+  };
+
+  const handleCanvasTouchMove = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+    worldRef.current.mouseX = x;
+    worldRef.current.mouseY = y;
+  };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
@@ -1890,6 +1923,8 @@ export default function OceanCanvas({
           className="abyssal-canvas"
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
+          onTouchStart={handleCanvasTouchStart}
+          onTouchMove={handleCanvasTouchMove}
         />
 
         {/* Overlay Inicial (Pronto para Mergulhar - Com Indicador de Dificuldade por Cor) */}

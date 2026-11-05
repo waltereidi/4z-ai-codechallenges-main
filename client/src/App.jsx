@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Database, Award, Flame, Heart, Wind } from 'lucide-react';
 import OceanCanvas from './components/OceanCanvas';
 import PassiveTreeTab from './components/PassiveTreeTab';
@@ -73,6 +73,14 @@ export default function App() {
   const [screenFullyLoaded, setScreenFullyLoaded] = useState(false);
 
   const [activeTab, setActiveTab] = useState('passivas'); // 'passivas' | 'skills' | 'mapa'
+  const managementSectionRef = useRef(null);
+
+  const handleSelectAndScrollTab = useCallback((tabId) => {
+    setActiveTab(tabId);
+    if (typeof window !== 'undefined' && window.innerWidth <= 1200 && managementSectionRef.current) {
+      managementSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
   const [profile, setProfile] = useState({
     id: 'alpha_shark',
     nivel: 1,
@@ -420,7 +428,7 @@ export default function App() {
               <button
                 type="button"
                 className="unspent-points-badge"
-                onClick={() => setActiveTab('passivas')}
+                onClick={() => handleSelectAndScrollTab('passivas')}
                 title="Clique para usar seus pontos de passiva disponíveis"
               >
                 +{profile.pontosPassivaDisponiveis} pt{profile.pontosPassivaDisponiveis > 1 ? 's' : ''}
@@ -503,12 +511,12 @@ export default function App() {
             onLiveTelemetryUpdate={setLiveTelemetry}
             onLiveProgressGain={handleLiveProgressGain}
             onCombatLogEvent={handleCombatLogEvent}
-            onSelectTab={setActiveTab}
+            onSelectTab={handleSelectAndScrollTab}
           />
         </section>
 
         {/* COLUNA DIREITA (44%): Painel de Gestão - 3 Abas Permanentes */}
-        <section className="tri-col col-right-management">
+        <section ref={managementSectionRef} className="tri-col col-right-management">
           <div className="persistent-tabs-bar">
             <button
               type="button"

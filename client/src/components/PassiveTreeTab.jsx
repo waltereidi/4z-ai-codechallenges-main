@@ -112,6 +112,51 @@ export default function PassiveTreeTab({
     setIsDragging(false);
   };
 
+  const pinchDistRef = useRef(null);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      dragStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        panX: pan.x,
+        panY: pan.y
+      };
+      pinchDistRef.current = null;
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchDistRef.current = Math.hypot(dx, dy);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 1 && isDragging) {
+      const dx = e.touches[0].clientX - dragStartRef.current.x;
+      const dy = e.touches[0].clientY - dragStartRef.current.y;
+      setPan({
+        x: dragStartRef.current.panX + dx,
+        y: dragStartRef.current.panY + dy
+      });
+    } else if (e.touches.length === 2 && pinchDistRef.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const nextDist = Math.hypot(dx, dy);
+      if (nextDist > 0) {
+        const ratio = nextDist / pinchDistRef.current;
+        pinchDistRef.current = nextDist;
+        setZoom((z) => Math.max(0.24, Math.min(1.45, Number((z * ratio).toFixed(2)))));
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    pinchDistRef.current = null;
+  };
+
   const handleWheel = (e) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.12 : 0.89;
@@ -195,6 +240,9 @@ export default function PassiveTreeTab({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
       >
         {/* Botões Flutuantes de Zoom */}
@@ -312,6 +360,7 @@ export default function PassiveTreeTab({
                   onMouseEnter={() => setHoveredNode(node)}
                   onClick={(e) => {
                     e.stopPropagation();
+                    setHoveredNode(node);
                     handleNodeClick(node);
                   }}
                 >

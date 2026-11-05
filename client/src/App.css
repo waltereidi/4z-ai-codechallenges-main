@@ -356,6 +356,7 @@
   height: 100%;
   display: block;
   cursor: crosshair;
+  touch-action: none;
 }
 
 /* Overlays de Pausa / Pronto / Reconfiguração no Tema Infantil */
@@ -845,6 +846,7 @@
   overflow: hidden;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   box-shadow: inset 0 2px 12px rgba(137, 207, 240, 0.3);
 }
 
@@ -1548,17 +1550,548 @@
   line-height: 1.3;
 }
 
-/* Responsividade para telas menores */
+/* ============================================================================
+   RESPONSIVIDADE COMPLETA PARA TABLETS E RESOLUÇÕES MOBILE (RETRATO & PAISAGEM)
+   ============================================================================ */
 @media (max-width: 1200px) {
   .abyssal-app-shell {
     height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
     overflow-y: auto;
   }
+
   .abyssal-tripartite-grid {
     grid-template-columns: 1fr;
     overflow: visible;
   }
+
   .tri-col {
-    min-height: 540px;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .col-left-ocean {
+    border-right: none;
+    border-bottom: 2.5px solid #89CFF0;
+  }
+
+  .ocean-canvas-wrapper {
+    width: 100%;
+    aspect-ratio: 780 / 540;
+    max-height: 55dvh;
+  }
+
+  /* Em todas as resoluções mobile/tablet, as 2 habilidades permanecem lado a lado em 1 única linha */
+  .hud-skills-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .persistent-tab-body {
+    overflow-y: visible;
+  }
+
+  .passive-graph-viewport {
+    height: 440px;
+    min-height: 360px;
+  }
+}
+
+/* Smartphones e Telas Mobile (Retrato: 360x800, 390x844, 412x915, 430x932) */
+@media (max-width: 768px) {
+  .abyssal-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.35rem 0.55rem;
+    gap: 0.35rem;
+  }
+
+  .topbar-brand {
+    justify-content: space-between;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  .topbar-logo {
+    height: 24px;
+  }
+
+  .session-status-pill {
+    font-size: 0.58rem;
+    padding: 0.14rem 0.48rem;
+    max-width: 58%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-telemetry-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.28rem;
+    width: 100%;
+  }
+
+  .top-stat-pill {
+    padding: 0.2rem 0.4rem;
+    border-radius: 9px;
+    min-width: 0;
+    gap: 0.3rem;
+  }
+
+  .top-pill-label {
+    font-size: 0.5rem;
+  }
+
+  .top-stat-pill strong {
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .xp-pill {
+    min-width: 0;
+  }
+
+  .ocean-panel-header {
+    padding: 0.32rem 0.55rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .ocean-panel-title {
+    font-size: 0.7rem;
+  }
+
+  .ocean-difficulty-color-pill,
+  .state-machine-pill {
+    font-size: 0.6rem;
+    padding: 0.14rem 0.45rem;
+  }
+
+  /* Garante que a tela de ação (Canvas) + a linha única das 2 habilidades fiquem visíveis juntas na primeira dobra */
+  .ocean-canvas-wrapper {
+    aspect-ratio: 780 / 540;
+    min-height: 195px;
+    max-height: 44dvh;
+  }
+
+  .ocean-freeze-overlay {
+    padding: 0.45rem;
+  }
+
+  .overlay-card {
+    padding: 0.75rem;
+    border-radius: 14px;
+    max-height: 94%;
+    overflow-y: auto;
+  }
+
+  .overlay-card h3 {
+    font-size: 0.88rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .overlay-card p {
+    font-size: 0.68rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .death-quick-tabs {
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .btn-reconfig-tab {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .btn-confirm-dive {
+    width: 100%;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  /* HUD Inferior em Mobile: 2 Habilidades SEMPRE em 1 ÚNICA LINHA junto com a tela de ação */
+  .ocean-bottom-hud {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0.38rem 0.45rem;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .hud-skills-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .hud-skill-slot {
+    padding: 0.32rem 0.4rem;
+    gap: 0.35rem;
+    border-radius: 12px;
+    min-width: 0;
+  }
+
+  .hud-keycap-column {
+    padding: 0.14rem 0.26rem;
+    border-radius: 8px;
+    gap: 0.1rem;
+  }
+
+  .hud-keycap-label {
+    font-size: 0.46rem;
+  }
+
+  .hud-keycap-3d {
+    min-width: 24px;
+    height: 22px;
+    padding: 0 0.25rem;
+    font-size: 0.82rem;
+    box-shadow: 0 2px 0 #0284C7;
+  }
+
+  .hud-keycap-mini {
+    font-size: 0.44rem;
+    padding: 0.04rem 0.18rem;
+  }
+
+  .hud-skill-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    font-size: 0.95rem;
+  }
+
+  .hud-shortcut-banner {
+    font-size: 0.52rem;
+    padding: 0.08rem 0.28rem;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hud-shortcut-banner strong {
+    font-size: 0.56rem;
+  }
+
+  .hud-skill-name {
+    font-size: 0.68rem;
+  }
+
+  .hud-skill-meta {
+    font-size: 0.54rem;
+    gap: 0.2rem;
+    flex-wrap: wrap;
+  }
+
+  .hud-ocean-actions {
+    width: 100%;
+  }
+
+  .btn-hud-pause {
+    width: 100%;
+    justify-content: center;
+    padding: 0.32rem 0.6rem;
+    font-size: 0.68rem;
+  }
+
+  .persistent-tabs-bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .persistent-tab-btn {
+    flex-direction: column;
+    gap: 0.18rem;
+    padding: 0.45rem 0.2rem;
+    font-size: 0.7rem;
+  }
+
+  .tab-badge {
+    font-size: 0.56rem;
+    padding: 0.08rem 0.35rem;
+  }
+
+  .persistent-tab-body {
+    padding: 0.5rem;
+  }
+
+  /* Aba 1: Passivas em Mobile */
+  .passive-top-toolbar {
+    padding: 0.4rem 0.55rem;
+  }
+
+  .passive-graph-viewport {
+    height: 380px;
+    min-height: 320px;
+  }
+
+  .passive-node-inspector {
+    left: 0.35rem;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .inspector-name {
+    font-size: 0.76rem;
+  }
+
+  .inspector-desc {
+    font-size: 0.66rem;
+  }
+
+  /* Aba 2: Habilidades em Mobile */
+  .equipped-slots-container {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .controls-mapping-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-swap-slots {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .mapping-selector {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .catalog-skill-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cat-skill-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .btn-equip-slot {
+    flex: 1;
+    text-align: center;
+    padding: 0.38rem 0.5rem;
+  }
+
+  /* Aba 3: Dificuldade em Mobile */
+  .difficulty-color-scale {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .tier-buttons-strip {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .affixes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   MODO PAISAGEM MOBILE (LANDSCAPE: 800x360, 844x390, 915x412, 932x430, 667x375)
+   Garante que a Tela de Ação (Oceano) + Linha Única das 2 Habilidades caibam
+   100% visíveis juntos em viewports de baixa altura (360px a 430px)
+   ============================================================================ */
+@media (max-width: 960px) and (orientation: landscape), (max-height: 500px) and (orientation: landscape) {
+  .abyssal-topbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.2rem 0.55rem;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+  }
+
+  .topbar-brand {
+    width: auto;
+    flex-shrink: 0;
+    gap: 0.35rem;
+  }
+
+  .topbar-logo {
+    height: 20px;
+  }
+
+  .brand-titles h1 {
+    font-size: 0.88rem;
+  }
+
+  .session-status-pill {
+    font-size: 0.54rem;
+    padding: 0.1rem 0.4rem;
+    max-width: 150px;
+  }
+
+  .topbar-telemetry-strip {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.25rem;
+    width: auto;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .top-stat-pill {
+    padding: 0.14rem 0.38rem;
+    border-radius: 8px;
+    flex-shrink: 0;
+    gap: 0.25rem;
+  }
+
+  .top-pill-label {
+    font-size: 0.46rem;
+  }
+
+  .top-stat-pill strong {
+    font-size: 0.64rem;
+  }
+
+  .xp-pill {
+    min-width: 105px;
+    gap: 0.12rem;
+  }
+
+  /* Seção do Oceano ocupa exatamente a altura restante da viewport em modo paisagem */
+  .col-left-ocean {
+    height: calc(100dvh - 38px);
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ocean-panel-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.18rem 0.55rem;
+    flex-shrink: 0;
+  }
+
+  .ocean-panel-title {
+    font-size: 0.66rem;
+  }
+
+  .ocean-canvas-wrapper {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+
+  /* Mantém a proporção 780x540 sem letterbox interno, preservando a precisão do toque */
+  .abyssal-canvas {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: 780 / 540;
+  }
+
+  /* Barra inferior em linha única: [Habilidade 1 (Q)] [Habilidade 2 (W)] [Pausar] */
+  .ocean-bottom-hud {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.24rem 0.55rem;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hud-skills-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    flex: 1;
+    width: auto;
+  }
+
+  .hud-skill-slot {
+    padding: 0.22rem 0.42rem;
+    gap: 0.35rem;
+    border-radius: 10px;
+  }
+
+  .hud-keycap-column {
+    padding: 0.1rem 0.25rem;
+  }
+
+  .hud-keycap-3d {
+    min-width: 22px;
+    height: 20px;
+    font-size: 0.76rem;
+  }
+
+  .hud-skill-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 0.88rem;
+  }
+
+  .hud-shortcut-banner {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.25rem;
+  }
+
+  .hud-skill-name {
+    font-size: 0.66rem;
+  }
+
+  .hud-skill-meta {
+    font-size: 0.52rem;
+  }
+
+  .hud-ocean-actions {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .btn-hud-pause {
+    width: auto;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.66rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-titles h1 {
+    font-size: 0.95rem;
+  }
+
+  .hud-skill-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+  }
+
+  .hud-keycap-3d {
+    min-width: 22px;
+    height: 20px;
+    font-size: 0.76rem;
+  }
+
+  .hud-skill-name {
+    font-size: 0.64rem;
+  }
+
+  .difficulty-color-scale {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
