@@ -1,0 +1,88 @@
+name: Build & Deploy SharkTank
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Validar build da imagem Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build da imagem (sem push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: sharktank:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy no servidor via SSH
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar chave SSH e known_hosts
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Atualizar código e reiniciar contêiner
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' TARGET_SHA='$TARGET_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          git fetch --prune origin main
+          git reset --hard "$TARGET_SHA"
+          docker compose up -d --build --remove-orphans
+          docker image prune -f
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then
+              echo "Health check local OK"; exit 0
+            fi
+            sleep 3
+          done
+          echo "Aplicação não respondeu em 127.0.0.1:5173" >&2
+          docker compose logs --tail=80
+          exit 1
+          REMOTE
+
+      - name: Health check público (HTTPS)
+        run: |
+          if [ -n "${{ secrets.APP_HEALTHCHECK_URL }}" ]; then
+            for i in $(seq 1 10); do
+              if curl -kfsS "${{ secrets.APP_HEALTHCHECK_URL }}" | grep -q "<title>SharkTank</title>"; then
+                echo "Página pública OK"; exit 0
+              fi
+              sleep 3
+            done
+            exit 1
+          else
+            echo "APP_HEALTHCHECK_URL não configurado, pulando verificação pública."
+          fi
+
+      - name: Remover chave SSH do runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
