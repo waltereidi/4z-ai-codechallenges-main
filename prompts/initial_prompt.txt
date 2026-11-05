@@ -1,0 +1,537 @@
+# Especificação Completa de Jogo: Shark Tank: Abyssal Exile
+*Híbrido de Incremental Simulation (Cookie Clicker) com ARPG Profundo (Path of Exile)*
+
+> [!IMPORTANT]
+> Esta especificação define formalmente todas as regras de game design, arquitetura de software, interface, fórmulas matemáticas de balanceamento e infraestrutura de containerização para o projeto **Shark Tank: Abyssal Exile**.
+
+---
+
+## 1. Visão Geral e Conceito do Jogo
+
+O jogo coloca o jogador no controle de um único **Tubarão Alfa Predador** em expedições às profundezas oceânicas (*Mapas Submarinos*). O ecossistema marinho é composto por **Presas Naturais** (para nutrição e recuperação de recursos) e perigosos **Inimigos do Mar** (águas-vivas tóxicas, enguias elétricas, caranguejos couraçados e leviatãs abissais de elite).
+
+A jogabilidade combina o fluxo viciante e a visualização ininterrupta de jogos incrementais como *Cookie Clicker* com a profundidade mecânica de *Path of Exile*:
+1. **Visualização 100% Contínua:** A simulação oceânica nunca é ocultada durante a navegação nos menus.
+2. **Menu Lateral com 3 Abas:** Acesso simultâneo e permanente à **Árvore de Passivas**, ao **Loadout de Habilidades** e à **Configuração de Dificuldade do Mapa**.
+3. **Sistema de Habilidades Ativas Limitante:** Apenas **2 habilidades habilitadas simultaneamente** (Slot 1: `Q` / Clique Esquerdo e Slot 2: `W` / Clique Direito ou Espaço), custos rigorosos de Fôlego e Cargas de Frenesi, intimamente dependentes das escolhas da árvore de passivas.
+4. **Regra de Ouro da Proporção 1:10 na Árvore de Passivas:** A árvore possui $300$ variações de nós, e o nível máximo do tubarão é rigidamente limitado a $\frac{1}{10}$ do total (Nível Máximo $30$). Dessa forma, o jogador aloca no máximo $30$ pontos ($10\%$ da árvore), garantindo que ela nunca possa ser totalmente preenchida e forçando escolhas e renúncias radicais de build.
+5. **Dificuldade Exponencial e Recompensa:** O jogador modula o risco do mapa combinando Tiers e Afixos; o XP ganho e a quantidade de peixes na tela crescem com a dificuldade.
+6. **Ciclo de Morte com Reconfiguração:** Ao morrer, a simulação congela. O jogador acessa as abas para redistribuir pontos, trocar habilidades e reconfigurar o mapa, recomeçando **apenas sob sua autorização expressa**.
+7. **Frontend em React e Execução na Porta 5173:** A interface e os componentes de jogo são inteiramente desenvolvidos em **React (Vite)**, padronizados para execução e acesso do usuário na porta **`5173`** (`http://localhost:5173`) tanto em ambiente local quanto em produção containerizada.
+
+```mermaid
+flowchart LR
+    subgraph MenuLateral["Menu Lateral Persistente (Estilo Cookie Clicker)"]
+        Tab1["Aba 1: Árvore de Passivas (PoE)"]
+        Tab2["Aba 2: Habilidades (2 Slots Habilitados)"]
+        Tab3["Aba 3: Dificuldade Exponencial & Map Device"]
+    end
+
+    subgraph CoreLoop["Simulação ao Vivo (Tela Principal)"]
+        Sim["Oceano ao Vivo: Tubarão Alfa vs. Inimigos do Mar"]
+        Combate["Disparo de Skills: Cliques ou [Q, W]"]
+        Sim --> Combate
+        Combate --> Sim
+    end
+
+    Tab3 -->|"Inicia com Dificuldade D(T, A)"| CoreLoop
+    Tab1 -.->|"Potencializa Tags de Habilidade"| Combate
+    Tab2 -.->|"Fornece os 2 Ataques Habilitados"| Combate
+
+    CoreLoop -->|"HP zera (Morte)"| Morte["Pausa Total & Tela de Reconfiguração"]
+    Morte -->|"Ajuste Livre de Passivas, Skills e Afixos"| MenuLateral
+    Morte -->|"Clique em [CONFIRMAR E MERGULHAR]"| CoreLoop
+```
+
+---
+
+## 2. Layout e Interface de Usuário (Estilo Cookie Clicker)
+
+A tela principal do jogo é inspirada na divisão estrutural do *Cookie Clicker*, garantindo que a coluna de ação principal permaneça visível e ativa o tempo todo.
+
+### 2.1. Wireframe da Interface
+
+```
++-----------------------------------------------------------------------------------------------------------------------+
+| TOPBAR: Nível do Tubarão (Cap 30 / 10% da Árvore) | Barra de XP | Biomassa | HP Atual / Máx | Fôlego | Frenesi (●●○) |
++------------------------------------------+------------------------------+---------------------------------------------+
+| COLUNA ESQUERDA (42%)                    | COLUNA CENTRAL (20%)         | COLUNA DIREITA (38%)                        |
+| [Oceano ao Vivo & Combate em Tempo Real] | [Telemetria e Combate Rápido]| [Painel de Gestão - 3 Abas Permanentes]     |
+|                                          |                              |                                             |
+|  - Tubarão Alfa (Controlado pelo Jogador)|  - Barras Dinâmicas de Vida  |  +---------------------------------------+  |
+|  - Inimigos do Mar com barras de vida    |    e Fôlego do Tubarão       |  | [🌳 Passivas] [⚡ Skills] [🗺️ Dificuldade] |  |
+|  - Cardumes de Presas Naturais           |  - Multiplicador de XP Atual |  +---------------------------------------+  |
+|  - Projéteis, Vórtices e Bolhas          |  - Indicador de Dificuldade  |                                             |
+|  - Log de dano flutuante (Canvas)        |    Exponencial em Tempo Real |  Conteúdo da Aba Selecionada:               |
+|                                          |  - Densidade de Peixes (Max) |   Aba 1: Grafo de Passivas Interativo       |
+|  HUD Inferior de Atalhos no Oceano:      |  - Log de Eventos de Combate |   Aba 2: Gestor dos 2 Slots de Habilidades  |
+|  [Slot 1: Q / Clique E] [Slot 2: W / D]  |  - Biomassa Coletada no Run  |   Aba 3: Seletor de Tier e Afixos do Mapa   |
+|  (Exibe cooldowns e custos de recurso)   |  - Taxa de Abates/minuto     |                                             |
++------------------------------------------+------------------------------+---------------------------------------------+
+| FOOTER: Frontend: React (Vite) @ localhost:5173 | SQLite WAL Backend | Atalhos Rápidos: [Q, W, Cliques E/D, Espaço, Tab]     |
++-----------------------------------------------------------------------------------------------------------------------+
+```
+
+### 2.2. Diretrizes Gráficas Leves
+* **Renderização:** HTML5 Canvas 2D acelerado por hardware para entidades do oceano, presas e projéteis.
+* **Estilo Visual:** Silhuetas bioluminescentes vetoriais com paleta neon abissal (ciano, magenta, laranja e azul profundo). Sem modelos 3D pesados nem arquivos de textura que sobrecarreguem o carregamento.
+* **Responsividade e Isolamento:** A navegação pelas 3 abas da coluna direita é instantânea e não causa nenhum travamento ou re-renderização na física do oceano na coluna esquerda.
+
+---
+
+## 3. Bestiário: Inimigos do Mar e Ameaças
+
+O jogo abandona a competição passiva entre tubarões e introduz uma dinâmica de predador contra um ecossistema hostil:
+
+### 3.1. Classificação das Entidades Marinhas
+
+```mermaid
+classDiagram
+    class EntidadeMarinha {
+        +string id
+        +float x
+        +float y
+        +float hp
+        +float velocidade
+        +mover()
+    }
+    class PresaComum {
+        +float valorNutricional
+        +int restauraFolego
+        +aoDevorar() concede Frenesi
+    }
+    class InimigoDoMar {
+        +float danoAtaque
+        +string tipoDano
+        +list afixosRaros
+        +atacarTubarao()
+    }
+    EntidadeMarinha <|-- PresaComum
+    EntidadeMarinha <|-- InimigoDoMar
+    InimigoDoMar <|-- AguaVivaToxica
+    InimigoDoMar <|-- EnguiaEletrica
+    InimigoDoMar <|-- CaranguejoBlindado
+    InimigoDoMar <|-- PeixePescadorAbissal
+    InimigoDoMar <|-- LeviataChefe
+```
+
+### 3.2. Comportamento e Mecânicas de Combate
+
+| Inimigo | Comportamento | Mecânica de Dano | Recompensa ao Abater |
+| :--- | :--- | :--- | :--- |
+| **Presa Comum** *(Sardinha / Atum)* | Fuga em cardume | Não causa dano (passivo) | Recupera 10% de HP, restaura 15 de Fôlego e gera 1 Carga de Frenesi |
+| **Água-viva Tóxica** | Flutuação vertical oscilante | Dano contínuo de veneno por segundo ao tocar no corpo | Biomassa Cáustica e XP básico |
+| **Enguia Elétrica** | Nado sinuoso em alta velocidade | Dispara projétil elétrico linear que atordoa o tubarão por 1 segundo | XP elevado e Biomassa Voltáica |
+| **Caranguejo Couraçado** | Rasteja pelo leito oceânico | Carapaça frontal que reduz dano recebido em 75% e reflete espinhos | Biomassa Chitinosa e minérios de mapa |
+| **Peixe-Pescador Abissal** | Camuflado nas sombras; avanço repentino | Mordida perfurante com 40% de chance de causar Sangramento | XP massivo e fragmentos de afixos |
+| **Leviatã Abissal (Chefe)** | Invoca tentáculos e vórtices | Ataques em área telegrafados e ondas de choque | Desbloqueia Tiers superiores de mapas |
+
+### 3.3. Afixos de Inimigos Raros (Inspirados no sistema Archnemesis de PoE)
+Inimigos raros recebem uma aura colorida bioluminescente e um modificador perigoso:
+* **Criogênico (Aura Azul):** Desacelera o tubarão em 35% ao redor.
+* **Vampírico (Aura Vermelha):** Recupera a própria vida a cada ataque desferido no jogador.
+* **Lorde dos Espinhos (Aura Laranja):** Ao ser abatido, explode em 8 dentes pontiagudos em todas as direções.
+
+---
+
+## 4. Sistema de Habilidades Ativas (Limitante & Sinérgico)
+
+Para transformar a jogabilidade em uma experiência tática de ARPG, o uso de habilidades é rigorosamente condicionado por restrições de recursos e dependência de especialização.
+
+### 4.1. Pilares Limitantes do Sistema
+
+1. **Restrição Severa a Apenas 2 Habilidades Habilitadas:**
+   * O jogador desbloqueia diversas habilidades pelo catálogo, mas **apenas 2 habilidades podem estar habilitadas/equipadas simultaneamente** para uso ativo na expedição (`Slot 1` e `Slot 2`).
+   * **Mapeamento Flexível:**
+     * `Slot 1` (Habilidade Primária): acionada via tecla `[Q]` ou **Clique Esquerdo** no alvo/terreno.
+     * `Slot 2` (Habilidade Secundária / Suporte): acionada via tecla `[W]` ou **Clique Direito** (ou tecla `[Espaço]`).
+2. **Gerenciamento de Recurso Duplo:**
+   * **Fôlego / Oxigênio:** Barra que se esgota rapidamente ao usar habilidades de ataque/movimento. Regenera passivamente a uma taxa moderada enquanto o tubarão nada livremente.
+   * **Cargas de Frenesi (Máx. 3 a 5):** Geradas exclusivamente ao devorar presas inteiras ou acertar acertos críticos. Habilidades de impacto supremo consomem Cargas de Frenesi.
+3. **Tags de Habilidade e Sinergia Estrita com a Árvore de Passivas:**
+   * Cada habilidade possui tags identificadoras: `[Mordida]`, `[Área]`, `[Projétil]`, `[Grito]`, `[Movimento]`, `[Sangramento]`.
+   * **Se o jogador não alocar passivas que potencializem a tag daquela habilidade, seu dano e eficácia serão medíocres**, impossibilitando builds "faz-tudo" e estimulando a criação de sinergias bem delineadas.
+
+### 4.2. Catálogo de Habilidades e Métodos de Ativação
+
+O jogador escolhe **apenas 2 destas habilidades** para manter habilitadas em cada expedição:
+
+* **Via Teclas de Atalho:** Pressionando `Q` (Slot 1) ou `W` (Slot 2).
+* **Via Clique com o Mouse:** Clicando com o botão esquerdo (Slot 1) ou botão direito (Slot 2) diretamente sobre o alvo ou terreno.
+
+| Habilidade no Catálogo | Tags | Custo de Recurso | Cooldown | Efeito em Combate | Configuração Típica |
+| :--- | :--- | :--- | :---: | :--- | :---: |
+| **Bote Voraz (Snap Strike)** | `[Mordida]`, `[Ataque]` | 18 Fôlego | 0.8s | Avança como um raio até a posição do cursor e morde com alto dano perfurante. | Slot 1 (`Q` / Clique E) |
+| **Vórtice de Cauda** | `[Área]`, `[Movimento]` | 32 Fôlego | 3.5s | Giro de 360° que destrói projéteis inimigos, repele águas-vivas e causa atordoamento. | Slot 2 (`W` / Clique D) |
+| **Salva de Dentículos** | `[Projétil]`, `[Físico]` | 26 Fôlego | 2.2s | Dispara rajada cônica de 5 dentes cortantes na direção apontada pelo cursor do mouse. | Slot 1 ou 2 |
+| **Frenesi do Megalodonte** | `[Grito]`, `[Buff]` | 3 Cargas Frenesi | 20.0s | O tubarão ruge, dobra de escala e recebe +100% de dano e 35% de roubo de vida por 6s. | Slot 2 (`W`) |
+| **Propulsão Evasiva** | `[Movimento]`, `[Defesa]` | 15 Fôlego | 4.0s | Impulso rápido com imunidade total a dano e colisão durante 0.35s (*i-frame*). | Slot 2 (`W` / Espaço) |
+
+---
+
+### 4.3. Lógica de Movimentação do Tubarão: Máquina de Estados e Obediência ao Clique
+
+Para conciliar a fluidez incremental (estilo *Cookie Clicker*) com o controle tático preciso (estilo *Path of Exile*), a inteligência de navegação do Tubarão é governada por uma máquina de estados estrita:
+
+```mermaid
+stateDiagram-v2
+    [*] --> PatrulhaAutomatica: Início da Expedição
+    PatrulhaAutomatica --> ComandoManual: Clique do Jogador (Destino / Alvo)
+
+    state ComandoManual {
+        [*] --> DeslocamentoVetorial: Desativa rota autônoma e gira para o alvo
+        DeslocamentoVetorial --> ExecucaoAcao: Proximidade atingida (dist <= 15px)
+        ExecucaoAcao --> AcaoConcluida: Mordida / Skill finalizada
+        DeslocamentoVetorial --> DeslocamentoVetorial: Novo clique (Atualiza coordenadas)
+    }
+
+    ComandoManual --> PatrulhaAutomatica: Somente APÓS AcaoConcluida
+```
+
+#### Regras de Obediência Estrita ao Comando de Clique:
+1. **Interrupção Imediata da Rota Autônoma:**
+   * No exato instante em que o jogador clica na tela (com botão esquerdo para nado/bote ou botão direito para habilidades direcionadas), a rota automática do tubarão é **interrompida imediatamente**.
+2. **Execução Ininterrupta até o Fim do Comando:**
+   * O tubarão entra no estado `COMANDO_MANUAL` e traça um vetor linear direto em direção às coordenadas $(x_{\text{clique}}, y_{\text{clique}})$ com aceleração máxima.
+   * O tubarão **ignora quaisquer desvios aleatórios de patrulha** e não volta para o nado ocioso enquanto não alcançar o ponto exato indicado (tolerância radial de $\text{dist} \le 15\text{px}$) ou atingir a presa/inimigo alvo da mordida.
+3. **Retomada da Patrulha Apenas pós-Conclusão:**
+   * **Somente após** o tubarão chegar ao destino exato do clique e concluir a ação disparada (mordida, impacto ou término da animação do comando), ele desacelera e transita suavemente de volta para a sua `PATRULHA_AUTOMATICA`.
+4. **Substituição de Destino em Tempo Real (*Re-targeting*):**
+   * Se o jogador clicar novamente em outro ponto enquanto o tubarão ainda se desloca para o clique anterior, o novo ponto sobrescreve instantaneamente o anterior, mantendo o tubarão em obediência contínua até o cumprimento integral da nova coordenada.
+
+---
+
+## 5. Estrutura das 3 Abas Laterais Permanentes
+
+A coluna direita permite alternar a qualquer momento entre as três telas de progressão e customização:
+
+```
++-------------------------------------------------------------+
+| [ Aba 1: 🌳 Passivas ] | [ Aba 2: ⚡ Skills ] | [ Aba 3: 🗺️ Dificuldade ] |
++-------------------------------------------------------------+
+```
+
+### 5.1. Aba 1: Árvore de Habilidades Passivas (Estilo PoE - Regra da Proporção 1:10)
+
+> [!IMPORTANT]
+> **Regra da Proporção Áurea 1:10 (Impossibilidade de Preenchimento Total):**
+> A Árvore de Passivas é um macrocosmo com **$V = 300$ nós de variações distintas**. O **Nível Máximo do Tubarão** é estritamente limitado por lei matemática a exatamente **$\frac{1}{10}$ do total de variações**:
+>
+> $$\text{Nível\_Máximo} = \frac{V}{10} = \frac{300}{10} = 30$$
+>
+> Como cada nível concede **1 Ponto de Passiva**, um jogador no nível máximo ($30$) terá alocado no máximo **$30$ pontos ($\mathbf{10\%}$ da árvore)**, deixando **$\mathbf{90\%}$ dos nós ($270$ nós) inalcançáveis** em uma única build. Isso torna matematicamente impossível preencher toda a árvore, forçando renúncias dolorosas, rotas de conexão (*pathing*) e especialização extrema no estilo *Path of Exile*.
+
+#### Estrutura do Grafo de 300 Variações:
+* **210 Nós Menores (Minor Nodes):** Bônus incrementais de $+8\%$ a $+15\%$ em tags específicas ([Mordida], [Projétil], Fôlego, Armadura).
+* **72 Nós Notáveis (Notable Nodes):** Habilidades passivas de impacto substancial (ex.: perfuração, atração magnética, sangramentos acumulativos).
+* **18 Chaves Angulares (Keystones):** Modificadores drásticos de comportamento espalhados nos ápices de cada quadrante.
+
+```mermaid
+graph TD
+    subgraph Quadrantes["Macro-Árvore de 300 Variações (Teto: 30 Pontos = 10%)"]
+        Q1["Quadrante Noroeste (75 Nós)<br/>Mandíbula & Carnificina: [Mordida], Dano Físico, Sangramento"]
+        Q2["Quadrante Nordeste (75 Nós)<br/>Farpas & Elementos: [Projétil], Veneno, Choque, Ricochete"]
+        Q3["Quadrante Sudoeste (75 Nós)<br/>Leviatã das Fendas: [Defesa], Fôlego, Armadura, Imunidades"]
+        Q4["Quadrante Sudeste (75 Nós)<br/>Magnetismo Abissal: [QoL], Sucção de Biomassa, Autoclicker"]
+    end
+
+    Root(("Núcleo Ancestral (Origem)")) --> Q1
+    Root --> Q2
+    Root --> Q3
+    Root --> Q4
+
+    Q1 --> K1{{"KEYSTONE: Banquete de Sangue<br/>Mordidas restauram 30% do dano em HP e Frenesi em críticos, sem regeneração passiva de Fôlego"}}
+    Q2 --> K2{{"KEYSTONE: Dispersão da Hidra<br/>Dentículos disparam leque de 360° com +4 dentes, -20% dano individual"}}
+    Q3 --> K3{{"KEYSTONE: Colosso Insondável<br/>Imunidade total a Atordoamento e Choque, +50% HP Máximo, -15% Velocidade de Nado"}}
+    Q4 --> K4{{"KEYSTONE: Vórtice Voraz<br/>Biomassa +50% fixo, presas têm 15% de chance de explodir com XP em dobro"}}
+```
+
+#### Camadas de Benefícios da Árvore de 300 Variações:
+1. **Poder Ofensivo & Hemorragia (Quadrante Noroeste):** Amplifica dano direto, taxa de crítico e aplica sangramentos que dizimam inimigos com alto HP enquanto o tubarão se esquiva.
+2. **Projéteis Elementais & Dispersão (Quadrante Nordeste):** Balística dentária com ricochete em paredes e veneno de DPS contínuo.
+3. **Resistência Elemental e Estabilidade (Quadrante Sudoeste):** Permite anular atordoamentos de enguias e venenos de águas-vivas através de especialização defensiva.
+4. **Automação e Conforto QoL (Quadrante Sudeste):**
+   * *Sucção Eletrossensorial:* Atrai magneticamente orbes de biomassa e presas num raio de 140px.
+   * *Mordida Instintiva:* O tubarão consome automaticamente pequenos peixes ao passar por eles sem consumir ações manuais, otimizando o fluxo incremental.
+
+---
+
+### 5.2. Aba 2: Gestão de Habilidades Ativas
+* **Loadout dos 2 Slots Habilitados:** Interface de encaixe onde o jogador seleciona exatamente **2 habilidades ativas** do catálogo para equipar nos slots de combate (`Slot 1: Primário` e `Slot 2: Secundário`).
+* **Configuração de Controles:** Opção de mapear cada uma das 2 habilidades habilitadas para as teclas de atalho (`Q` ou `W`) ou para os botões do mouse (Clique Esquerdo ou Clique Direito).
+* **Painel de Sinergia:** Mostra em tempo real quais nós da Árvore de Passivas estão ativos e potencializando as 2 habilidades selecionadas.
+
+---
+
+### 5.3. Aba 3: Configuração de Dificuldade & Map Device
+* **Seletor de Tier de Profundidade:** Do Tier 1 (*Recifes Claros*) ao Tier 16 (*Fossa das Marianas Abissal*).
+* **Seleção e Crafting de Afixos:** Caixa de seleção de modificadores que aumentam perigos no mapa (ex.: Água Ácida, Cardumes Ferozes, Presença de Enguias de Choque).
+* **Escalonamento de Densidade de Peixes (Pack Size):** Mostra o incremento gradual e controlado na quantidade máxima de peixes e inimigos simultâneos na tela (+peixes para devorar e mais perigo concentrado).
+* **Painel de Telemetria Preditiva:** Exibe instantaneamente o cálculo da Dificuldade Total, o respectivo Multiplicador Exponencial de Experiência, Biomassa e o Teto de Entidades na Tela.
+
+---
+
+## 6. Fórmulas Matemáticas: Dificuldade Exponencial, Spawn de Peixes e XP
+
+### 6.1. Fórmula Exponencial de Dificuldade do Mapa
+
+A dificuldade total $D$ é calculada de maneira não-linear com base no Tier de profundidade ($T$) e no impacto ponderado dos afixos selecionados:
+
+$$D(T, \mathbf{A}) = D_0 \cdot (1 + \lambda)^{T - 1} \cdot \left(1 + \sum_{k=1}^{n} w_k \cdot a_k\right) \cdot \prod_{i=1}^{n} (1 + m_i)$$
+
+Onde:
+* $D_0 = 10$ (Dificuldade de referência no Tier 1 sem modificadores).
+* $T \in [1, 16]$ (Tier de profundidade selecionado).
+* $\lambda = 0.28$ (Taxa de crescimento exponencial composto de $+28\%$ por Tier).
+* $m_i$ = Multiplicador percentual do afixo $i$ (ex.: Inimigos com $+30\%$ de velocidade $\rightarrow m_i = 0.30$).
+* $w_k \cdot a_k$ = Fator de peso para afixos com mecânicas extras (ex.: presença de chefes).
+
+### 6.2. Fórmula de Aumento da Quantidade de Peixes e Inimigos na Tela (Pack Size)
+
+Para elevar a densidade de ação sem degradar a performance gráfica leve (Canvas 2D), o mapa eleva gradualmente a quantidade máxima de entidades marinhas ativas simultâneas na tela com base no Tier e nos Afixos:
+
+$$N_{\text{max}}(T, \mathbf{A}) = N_{\text{base}} + \min\left(20, \; \lfloor 1.25 \cdot (T - 1) + 1.5 \cdot n_{\text{afixos}} \rfloor\right)$$
+
+Onde:
+* $N_{\text{base}} = 14$ (Quantidade base de entidades em T1: 10 presas + 4 inimigos).
+* Cada Tier adicional eleva suavemente a população do aquário em $+1.25$ entidades.
+* Cada afixo ativo adiciona $+1.5$ entidades adicionais (cardumes densos).
+* O limite máximo é rigidamente travado em **34 entidades simultâneas**, garantindo 60 FPS estáveis mesmo em navegadores modestos.
+
+### 6.3. Cálculo do Ganho de Experiência (XP)
+
+O montante de XP concedido por cada inimigo derrotado e por segundo de sobrevivência escala com a dificuldade acumulada de acordo com uma potência superlinear:
+
+$$\text{XP\_Inimigo} = \text{Base\_XP} \cdot \left(1 + \frac{D(T, \mathbf{A})}{D_0}\right)^{1.25} \cdot (1 + \text{Mod\_Passivas})$$
+
+$$\text{Multiplicador\_Biomassa} = \left(\frac{D(T, \mathbf{A})}{D_0}\right)^{0.90}$$
+
+### 6.4. Tabela Comparativa de Escala, População na Tela e Recompensas
+
+| Tier ($T$) | Afixos Selecionados | Dificuldade ($D$) | Entidades Máx. na Tela ($N_{\text{max}}$) | Multiplicador de XP | Multiplicador de Biomassa | Periculosidade |
+| :---: | :--- | :---: | :---: | :---: | :---: | :--- |
+| **T1** | Nenhum (Águas Rasas) | **10.0** | **14 peixes** | **$1.0\times$** *(5 XP)* | **$1.0\times$** | Seguro |
+| **T3** | Maré Rápida (+20% velocidade) | **19.7** | **17 peixes** *(+21%)* | **$2.3\times$** *(11.5 XP)* | **$1.8\times$** | Fácil |
+| **T6** | Águas Turvas + Cardumes Tóxicos | **58.2** | **23 peixes** *(+64%)* | **$10.5\times$** *(52.5 XP)* | **$4.9\times$** | Desafiador |
+| **T10** | Enguias Elétricas + Reflexo de Dano | **245.8** | **28 peixes** *(+100%)* | **$68.4\times$** *(342 XP)* | **$17.8\times$** | Mortal |
+| **T14** | Inimigos Raros + Maré Ácida contínua | **892.1** | **32 peixes** *(+128%)* | **$348.6\times$** *(1.743 XP)* | **$56.2\times$** | Extremo |
+| **T16** | 4 Afixos Máximos + Leviatã Supremo | **2.418.0** | **34 peixes** *(+142% teto)* | **$1.215.0\times$** *(6.075 XP)* | **$138.4\times$** | Pesadelo Abissal |
+
+> [!TIP]
+> O aumento gradual no número de peixes na tela oferece uma faca de dois gumes: mais presas para gerar Cargas de Frenesi e curar o tubarão, mas também cardumes mais densos de inimigos hostis atacando ao mesmo tempo.
+
+---
+
+## 7. Ciclo de Derrota e Tela de Reconfiguração
+
+Quando o HP do Tubarão atinge **zero** devido aos ataques de inimigos ou efeitos ambientais:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Canvas as Oceano / Canvas (Simulação)
+    participant Engine as Motor de Jogo (State)
+    participant UI as Tela de Reconfiguração (Pós-Morte)
+    participant Jogador as Jogador
+    participant DB as SQLite Backend
+
+    Canvas->>Engine: HP do Tubarão = 0
+    Engine->>Canvas: Congela o loop de física e cancela spawns
+    Engine->>DB: POST /api/game/expedition/finish (Salva estatísticas)
+    Engine->>UI: Exibe Painel de Derrota e Desbloqueia Abas
+    Note over Canvas,UI: O jogo permanece 100% CONGELADO no fundo
+    Jogador->>UI: Navega na Aba 1 (Aloca novos pontos de passivas)
+    Jogador->>UI: Navega na Aba 2 (Troca ou reordena as 2 habilidades habilitadas)
+    Jogador->>UI: Navega na Aba 3 (Reajusta o Tier e afixos do mapa)
+    Note over Jogador,UI: O jogo NÃO reinicia automaticamente!
+    Jogador->>UI: Clica deliberadamente no botão [ CONFIRMAR E MERGULHAR ]
+    UI->>DB: POST /api/game/expedition/start (Persiste nova expedição)
+    UI->>Canvas: Restaura HP e Fôlego e inicia a nova simulação
+```
+
+### Regras Mandatórias da Reconfiguração:
+1. **Sem Reinício Automático:** Sob nenhuma hipótese o jogo recomeça sozinho ao morrer. O jogador dita o momento exato em que está pronto para mergulhar novamente.
+2. **Acesso Irrestrito às 3 Abas:** O jogador pode alternar livremente entre a **Árvore de Passivas**, as **Habilidades** e o **Map Device** durante a tela de pausa de morte para planejar a estratégia de revanche.
+3. **Relatório Analítico de Óbito:** O painel informa exatamente o que liquidou o personagem (ex.: *"68% Dano Elétrico de Enguia Abissal, 32% Dano Contínuo de Maré Ácida"*).
+
+---
+
+## 8. Arquitetura Técnica e Modelo de Dados
+
+### 8.1. Esquema do Banco de Dados (SQLite em Modo WAL)
+
+```sql
+-- Perfil persistente do jogador e build
+CREATE TABLE IF NOT EXISTS jogador_build (
+  id TEXT PRIMARY KEY,
+  nivel INTEGER NOT NULL DEFAULT 1 CHECK (nivel >= 1 AND nivel <= 30), -- Teto de 1/10 das 300 variações da árvore
+  xp_atual REAL NOT NULL DEFAULT 0,
+  xp_proximo_nivel REAL NOT NULL DEFAULT 100,
+  biomassa REAL NOT NULL DEFAULT 0,
+  pontos_passiva_disponiveis INTEGER NOT NULL DEFAULT 0,
+  nos_passivas_json TEXT NOT NULL DEFAULT '[]', -- Máximo de 30 nós alocados (10% da árvore)
+  habilidades_equipadas_json TEXT NOT NULL DEFAULT '["snap_strike", "tail_sweep"]', -- Máximo de 2 habilidades habilitadas
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
+
+-- Estado do Mapa ativo configurado no Map Device
+CREATE TABLE IF NOT EXISTS mapa_config (
+  id TEXT PRIMARY KEY,
+  tier INTEGER NOT NULL DEFAULT 1,
+  dificuldade_calculada REAL NOT NULL,
+  densidade_peixes_max INTEGER NOT NULL DEFAULT 14,
+  afixos_json TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'pronto' -- 'pronto', 'em_andamento', 'derrota'
+);
+
+-- Histórico de expedições (Telemetria & Analytics)
+CREATE TABLE IF NOT EXISTS historico_expedicoes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tier INTEGER NOT NULL,
+  dificuldade REAL NOT NULL,
+  inimigos_abatidos INTEGER NOT NULL,
+  tempo_sobrevivencia_segundos REAL NOT NULL,
+  xp_total_ganho REAL NOT NULL,
+  causa_morte TEXT,
+  data_hora TEXT NOT NULL
+);
+```
+
+### 8.2. Catálogo de Endpoints da API REST
+
+| Rota | Método | Função |
+| :--- | :--- | :--- |
+| `/api/game/profile` | `GET` | Carrega nível, XP, biomassa, passivas alocadas e as 2 habilidades habilitadas. |
+| `/api/game/skills/equip` | `POST` | Atualiza a lista e atalhos das 2 habilidades ativas habilitadas. |
+| `/api/game/passives/allocate`| `POST` | Valida dependências no grafo e salva a alocação de novos nós de passiva. |
+| `/api/game/map/calculate` | `POST` | Calcula no backend a dificuldade exponencial e o multiplicador de XP. |
+| `/api/game/expedition/start` | `POST` | Inicia a expedição após a confirmação expressa do jogador. |
+| `/api/game/expedition/finish`| `POST` | Congela a sessão no servidor ao registrar a morte do tubarão. |
+
+### 8.3. Arquitetura Frontend em React e Padronização na Porta 5173
+
+O frontend do jogo é integralmente desenvolvido em **React** utilizando **Vite** como ferramenta de build e servidor de desenvolvimento:
+
+1. **Porta Padrão de Acesso do Usuário:** A aplicação completa é acessada na **porta `5173`** (`http://localhost:5173`).
+2. **Ambiente de Desenvolvimento Local:**
+   * O cliente React executa nativamente na porta `5173` com suporte a Fast Refresh / HMR.
+   * O arquivo `client/vite.config.js` é configurado com proxy reverso transparente para que todas as chamadas `/api` sejam encaminhadas internamente para o backend Express:
+     ```javascript
+     // client/vite.config.js
+     import { defineConfig } from 'vite';
+     import react from '@vitejs/plugin-react';
+
+     export default defineConfig({
+       plugins: [react()],
+       server: {
+         port: 5173,
+         strictPort: true,
+         proxy: {
+           '/api': {
+             target: 'http://localhost:5000',
+             changeOrigin: true
+           }
+         }
+       }
+     });
+     ```
+3. **Ambiente de Produção / Docker:**
+   * O servidor Express é configurado para escutar na porta `5173` (`PORT=5173`), servindo os endpoints `/api` e entregando diretamente os arquivos estáticos compilados do React (`client/dist`), mantendo a porta `5173` como ponto único de entrada para o usuário.
+
+---
+
+## 9. Especificação de Containerização (Dockerfile e Docker Compose)
+
+Para viabilizar a compilação nativa C++ do driver SQLite (`better-sqlite3`) e unificar a entrega do SPA construído com Vite e da API Node.js/Express:
+
+### 9.1. Dockerfile Multi-Stage de Produção (`Dockerfile`)
+
+```dockerfile
+# ==============================================================================
+# ESTÁGIO 1: Build do Frontend (Vite + React)
+# ==============================================================================
+FROM node:20-alpine AS client-builder
+WORKDIR /app/client
+
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run build
+
+# ==============================================================================
+# ESTÁGIO 2: Build das Dependências Nativas do Backend (better-sqlite3)
+# ==============================================================================
+FROM node:20-alpine AS server-deps
+WORKDIR /app/server
+
+# Ferramentas nativas de compilação C++ necessárias para compilar o better-sqlite3 em Alpine
+RUN apk add --no-cache python3 make g++
+
+COPY server/package*.json ./
+RUN npm ci --omit=dev
+
+# ==============================================================================
+# ESTÁGIO 3: Imagem Final de Execução (Runtime Seguro e Ultraleve)
+# ==============================================================================
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=5173
+ENV DB_PATH=/app/data/shark_tank.db
+
+# Diretório para o volume persistente do SQLite
+RUN mkdir -p /app/data && chown -R node:node /app
+
+COPY --from=server-deps /app/server/node_modules /app/server/node_modules
+COPY server/ /app/server/
+COPY --from=client-builder /app/client/dist /app/client/dist
+
+# Execução com usuário sem privilégios de root por segurança
+USER node
+EXPOSE 5173
+
+VOLUME ["/app/data"]
+
+WORKDIR /app/server
+CMD ["node", "src/index.js"]
+```
+
+### 9.2. Orquestração com Docker Compose (`docker-compose.yml`)
+
+```yaml
+version: '3.8'
+
+services:
+  shark-tank-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shark-tank-exile
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - PORT=5173
+      - NODE_ENV=production
+      - DB_PATH=/app/data/shark_tank.db
+    volumes:
+      - sqlite_data:/app/data
+
+volumes:
+  sqlite_data:
+    driver: local
+```
+
+---
+
+## 10. Roteiro de Implementação Recomendado
+
+1. **Sprint 1 (Layout Tripartido em React & Abas Laterais na Porta 5173):** Estruturar o frontend React (Vite) servido na porta `5173` em 3 colunas (estilo *Cookie Clicker*), integrando o alternador das 3 abas persistentes na coluna direita.
+2. **Sprint 2 (Substituição por Inimigos do Mar):** Remover a simulação de 3 tubarões concorrentes e implementar o controle do Tubarão Alfa versus cardumes de presas e inimigos com barras de HP.
+3. **Sprint 3 (Sistema de Habilidades, Controles & Obediência ao Clique):** Criar os 2 slots de habilidades habilitadas, a máquina de estados de navegação (obediência ininterrupta ao clique do jogador até o destino/alvo antes de retomar a patrulha automática), o consumo de Fôlego/Frenesi e o acionamento por cliques ou teclas `[Q, W]`.
+4. **Sprint 4 (Árvore de Passivas com Grafo de Tags):** Desenvolver o visualizador interativo de nós com zoom/pan, conectando os bônus das passivas diretamente às tags das habilidades equipadas.
+5. **Sprint 5 (Map Device Exponencial & Ciclo de Derrota):** Implementar o cálculo exponencial na Aba 3 e criar a tela de reconfiguração com pausa total da física até a autorização do jogador.
+6. **Sprint 6 (Containerização & Testes de Carga):** Construir a imagem Docker multi-stage e validar a persistência do SQLite sob múltiplos reinícios de container.

@@ -1,0 +1,296 @@
+# Especificação de Modificação de Interface e Tema: Shark Tank (Edição Infantil Azul Bebê)
+**Arquivo de Especificação:** `prompts/spec11152026.txt`  
+**Projeto Alvo:** `Shark Tank: Abyssal Exile` (`/home/walter/repos/4z5s/4z-ai-codechallenges-main`)
+
+> [!IMPORTANT]
+> Esta especificação define todas as alterações funcionais, estruturais e visuais necessárias para:
+> 1. **Remover a coluna central de "Telemetria & Combate Rápido"** e reestruturar a tela principal para um layout limpo de 2 colunas.
+> 2. **Transformar o tema visual** para uma **paleta com tonalidade infantil harmonizada com Azul Bebê (`#89CFF0` / `#B3E5FC`)**.
+> 3. **Adicionar indicadores de teclas de atalho altamente visíveis e aparentes** na interface do jogo, deixando claro e imediato qual tecla ativa cada habilidade ativa.
+> 4. **Simplificar e reformular a Aba de Passivas**, removendo todas as menções às regras de proporção (`1:10`), removendo a barra inferior de porcentagens de tags (`[Mordida] 120%` e demais porcentagens abaixo do grafo) e exibindo no inspetor **apenas** o **Nome da Habilidade**, **Seus Efeitos** e o **Tipo de Categoria** (referente à cor na árvore de passivas, em substituição ao antigo "Tipo de Nó").
+> 5. **Remover todos os indicativos de multiplicadores e cálculos matemáticos do jogo**, mantendo **apenas indicadores de dificuldade por cores**.
+
+---
+
+## 1. Remoção de "Telemetria & Combate Rápido" e Novo Layout de 2 Colunas
+
+### 1.1. O que deve ser removido
+* **Coluna Central Completa (`CenterTelemetryColumn`):**
+  * Remover a importação e a renderização do componente `<CenterTelemetryColumn />` e da `<section className="tri-col col-center-telemetry">` em `client/src/App.jsx`.
+  * Descontinuar/remover o componente `client/src/components/CenterTelemetryColumn.jsx` (que continha o título `TELEMETRIA & COMBATE RÁPIDO`, barras duplicadas de HP/Fôlego/Frenesi, grade de KPIs e multiplicadores em tempo real, mini-atributos defensivos, log de eventos de combate e histórico SQLite).
+  * Remover os seletores CSS associados à coluna central (`.col-center-telemetry`, `.center-telemetry-column`, `.telemetry-section-header`, `.telemetry-bars-card`, `.telemetry-kpi-grid`, `.build-mini-stats`, `.combat-log-box`, `.recent-runs-box`) em `client/src/App.css`.
+
+### 1.2. Nova Estrutura de Layout (2 Colunas: Oceano + Painel de Abas)
+Com a saída da coluna central de telemetria, o grid principal `.abyssal-tripartite-grid` passa de `42% 20% 38%` para um **layout bipartido amplo (`56% 44%`)**, proporcionando mais espaço visual tanto para o oceano interativo quanto para a árvore de passivas, habilidades e seletor de dificuldade por cores.
+
+```
++-------------------------------------------------------------------------------------------------------------------+
+| TOPBAR INFANTIL (Azul Bebê): Nível do Tubarão | Barra de XP | Biomassa | HP Atual / Máx | Fôlego | Frenesi (●●○)   |
++-----------------------------------------------------------------+-------------------------------------------------+
+| COLUNA ESQUERDA (56%)                                           | COLUNA DIREITA (44%)                            |
+| [Oceano Infantil Azul Bebê & Combate em Tempo Real]             | [Painel de Gestão - 3 Abas Persistentes]        |
+|                                                                 |                                                 |
+|  - Tubarão Amigável & Criaturas Marinhas em águas cristalinas   |  +-------------------------------------------+  |
+|  - Projéteis, Vórtices e Bolhas suaves                          |  | [🌳 Passivas]  [⚡ Skills]  [🗺️ Dificuldade] |  |
+|  - Indicador de Dificuldade por Cor no cabeçalho do Oceano      |  +-------------------------------------------+  |
+|                                                                 |                                                 |
+|  HUD INFERIOR DE HABILIDADES ATIVAS (ATALHOS SUPER VISÍVEIS):   |  Conteúdo da Aba Selecionada:                   |
+|  +---------------------------+  +----------------------------+  |   • Aba 1: Árvore de Passivas Simplificada      |
+|  | ⌨️ TECLA [ Q ] / CLIQUE E |  | ⌨️ TECLA [ W ] / ESPAÇO    |  |     (Apenas Nome, Efeitos e Categoria por Cor)  |
+|  | ⚡ Bote Voraz (Slot 1)     |  | 🌀 Vórtice de Cauda (Slot 2)|  |   • Aba 2: Loadout das 2 Habilidades + Atalhos  |
+|  +---------------------------+  +----------------------------+  |   • Aba 3: Dificuldade Visual Apenas por Cores  |
++-----------------------------------------------------------------+-------------------------------------------------+
+| FOOTER: Frontend: React (Vite) @ localhost:5173 | Teclas de Atalho: [Q] Habilidade 1 • [W / Espaço] Habilidade 2  |
++-------------------------------------------------------------------------------------------------------------------+
+```
+
+```mermaid
+flowchart LR
+    subgraph LayoutPrincipal["Novo Layout Bipartido (56% | 44%) — Sem Coluna de Telemetria"]
+        direction LR
+        ColEsq["Coluna Esquerda (56%)<br/>Oceano ao Vivo + HUD com Teclas de Atalho em Destaque"]
+        ColDir["Coluna Direita (44%)<br/>3 Abas: Passivas Simplificada | Skills | Dificuldade por Cores"]
+    end
+    ColEsq <--> ColDir
+```
+
+---
+
+## 2. Novo Tema Visual: Paleta Infantil Combinando com Azul Bebê
+
+Toda a interface deixa o aspecto sombrio/abissal (`#040710`) e adota uma estética **infantil, clara, lúdica e acolhedora**, centrada na tonalidade **Azul Bebê (`#89CFF0` / `#B3E5FC` / `#E6F7FF`)** e cores pastéis complementares.
+
+### 2.1. Paleta de Cores Oficial (`:root` em `client/src/App.css`)
+
+| Token CSS | Cor Hexadecimal | Papel Visual na Interface Infantil |
+| :--- | :---: | :--- |
+| `--bg-baby-blue-main` | `#D6F0FF` | Fundo principal da aplicação (Azul Bebê suave e iluminado) |
+| `--bg-baby-blue-sky` | `#EBF8FF` | Fundo secundário / gradiente claro de céu e água |
+| `--bg-panel-cloud` | `#F5FBFF` | Fundo dos painéis laterais e containers (Branco Nuvem Azulado) |
+| `--bg-card-pastel` | `#FFFFFF` | Fundo dos cards internos com toque limpo e alegre |
+| `--bg-card-hover` | `#E1F3FE` | Estado de hover suave em Azul Bebê |
+| `--baby-blue-primary` | `#89CFF0` | **Azul Bebê Clássico** (destaques principais, cabeçalhos, bordas ativas) |
+| `--baby-blue-strong` | `#38BDF8` | Azul Celeste Vibrante (botões primários, barras de progresso, foco) |
+| `--baby-blue-deep` | `#0284C7` | Azul Oceano Amigável para ícones, títulos e alto contraste |
+| `--pastel-pink` | `#FF8FA3` | **Categoria Rosa Algodão-Doce** (Cor da Árvore Q1 / Indicadores de Vida/Frenesi) |
+| `--pastel-orange` | `#FFB366` | **Categoria Pêssego/Laranja Sol** (Cor da Árvore Q2 / Projéteis & Área) |
+| `--pastel-blue` | `#63B3ED` | **Categoria Azul Bebê Celeste** (Cor da Árvore Q3 / Defesa & Fôlego) |
+| `--pastel-mint` | `#52D1A0` | **Categoria Verde Menta Doce** (Cor da Árvore Q4 / Utilidade & Movimento) |
+| `--pastel-yellow` | `#FFD166` | Amarelo Estrela Infantil (Keycaps de atalho, medalhas de nível, destaques) |
+| `--pastel-lavender` | `#B794F4` | Lavanda Suave (Biomassa e detalhes decorativos) |
+| `--text-primary` | `#1E3A5F` | Azul Marinho Suave (texto principal com excelente leitura sobre fundo claro) |
+| `--text-secondary` | `#4A6FA5` | Azul Médio Acinzentado (subtítulos e rótulos) |
+| `--text-muted` | `#7B9AC4` | Azul Pastel Claro (textos auxiliares) |
+| `--border-baby-blue` | `#A5D8FF` | Bordas arredondadas dos cartões e divisórias (`2px solid`) |
+
+### 2.2. Diretrizes Estéticas Infantis
+1. **Cantos Arredondados e Bordas Macias:** Aumentar os raios de borda (`border-radius: 14px` a `20px` nos cards e `999px` em pílulas/badges) com bordas de `2px solid #A5D8FF` e sombras suaves (`box-shadow: 0 4px 12px rgba(137, 207, 240, 0.35)`).
+2. **Oceano Canvas em Tons de Azul Bebê (`OceanCanvas.jsx`):**
+   * Substituir o gradiente noturno (`#030d1f` -> `#01050c`) por um **gradiente de aquário/oceano infantil iluminado**: topo em Azul Bebê Claro (`#B3E5FC`), meio em Azul Bebê (`#89CFF0`) e fundo em Azul Sereno (`#5B9BD5`), com feixes de luz solar suaves e bolhas brancas translúcidas (`rgba(255, 255, 255, 0.55)`).
+   * O Tubarão Alfa deve ser renderizado com cores vibrantes e simpáticas (corpo em Azul Celeste/Bebê brilhante `#0284C7` / `#38BDF8` com barriga clara `#E0F2FE` e contorno suave).
+3. **Fundo do Grafo de Passivas (`PassiveTreeTab.jsx`):**
+   * Substituir o fundo escuro (`#081529`) por um fundo claro acolhedor (`radial-gradient(circle at center, #F0F9FF 0%, #D6F0FF 100%)`), com linhas de conexão suaves (`#93C5FD` para inativas e `#0284C7` / `#FFB703` para conexões ativas).
+
+---
+
+## 3. Indicadores Mais Visíveis para as Teclas de Atalho das Habilidades Ativas
+
+O jogador deve identificar **instantaneamente e sem esforço** qual tecla de atalho aciona cada habilidade ativa equipada, tanto durante o combate no oceano quanto na tela de configuração de habilidades.
+
+### 3.1. Design do Componente Visual de Atalho (`Keycap Badge`)
+Cada slot de habilidade ativa (`Slot 1` e `Slot 2`) deve apresentar um **Bloco de Tecla de Atalho (Keycap 3D Infantil)** em destaque:
+* **Tamanho e Tipografia:** Fonte grande (`0.95rem` a `1.15rem`), peso `900` (extra-bold), família monoespaçada/arredondada.
+* **Estilo de Tecla Física (Keycap):**
+  * Fundo em **Amarelo Sol Infantil (`#FFE066`)** ou **Branco Puro (`#FFFFFF`)** com borda dupla em **Azul Marinho/Celeste (`2px solid #0284C7`)** e sombra inferior sólida (`box-shadow: 0 3px 0 #0284C7`) que simula uma tecla real de teclado.
+  * Quando a habilidade é disparada ou a tecla é pressionada, o indicador aplica animação de compressão (`transform: translateY(2px)`).
+* **Rótulos Explícitos e Visíveis:**
+  * **Slot 1 (Habilidade Ativa 1):** Badge principal grande **`TECLA [ Q ]`** acompanhado de badge secundário **`🖱️ Clique Esq.`**
+  * **Slot 2 (Habilidade Ativa 2):** Badge principal grande **`TECLA [ W ]`** acompanhado de badges **`[ ESPAÇO ]`** e **`🖱️ Clique Dir.`**
+
+### 3.2. Aplicação no HUD Inferior do Oceano (`client/src/components/OceanCanvas.jsx`)
+No rodapé do Canvas (`.ocean-bottom-hud`), cada botão `.hud-skill-slot` deve ser redesenhado para destacar a tecla de atalho:
+1. **Coluna Esquerda do Card da Habilidade:**
+   * Exibe o **Ícone da Habilidade** (`44px × 44px`) com um **selo flutuante da Tecla Principal (`Q` ou `W`)** no canto superior esquerdo em tamanho grande e cor contrastante.
+2. **Cabeçalho de Atalho Aparente (`.hud-shortcut-banner`):**
+   * No topo de cada slot no HUD, exibir uma faixa destacada:
+     * Slot 1: `⌨️ APERTE [ Q ] ou CLIQUE ESQUERDO`
+     * Slot 2: `⌨️ APERTE [ W ] / [ ESPAÇO ] ou CLIQUE DIREITO`
+3. **Remoção de Multiplicadores no HUD:**
+   * Remover o texto `Sinergia X%` do card do HUD para focar 100% na tecla de atalho e na identificação da habilidade.
+
+### 3.3. Aplicação na Aba de Habilidades (`client/src/components/SkillsLoadoutTab.jsx`)
+* Nos 2 cards de habilidades equipadas (`.equipped-slot-card`), substituir a antiga pílula discreta `.slot-keybind-pill` por um **Banner de Atalho Grande (`.slot-keycap-showcase`)** mostrando claramente:
+  * **Slot 1:** `[ Q ]` + `Clique Esquerdo`
+  * **Slot 2:** `[ W ]` + `[ Espaço ]` + `Clique Direito`
+* Nos itens do catálogo de habilidades (`.catalog-skill-item`), os botões de equipar devem indicar explicitamente a tecla correspondente:
+  * `Equipar no Slot 1 [Tecla Q]`
+  * `Equipar no Slot 2 [Tecla W]`
+
+---
+
+## 4. Reformulação Completa da Aba de Passivas (`PassiveTreeTab.jsx`)
+
+A Aba de Passivas (`client/src/components/PassiveTreeTab.jsx`) deve passar por uma limpeza rigorosa de informações técnicas e matemáticas, atendendo a **quatro regras mandatórias**:
+
+### 4.1. Regra 1: Remoção das Informações de Regras de Proporções
+* **Remover integralmente** o banner `.golden-ratio-banner` que exibe:
+  * ❌ `"🌳 REGRA DA PROPORÇÃO 1:10 — 300 Nós (Teto: Nv.30 = 30 pts / 10%)"`
+  * ❌ `"210 Menores • 72 Notáveis • 18 Keystones"`
+  * ❌ `"({((allocatedIds.length / 300) * 100).toFixed(1)}% da Árvore)"`
+* **Remover também** na Topbar (`App.jsx`) o texto `(REGRA 1:10)` e `(X/300 nós)`, e no Footer (`App.jsx`) o texto `• Regra 1:10 (300 Nós / Cap Nível 30)`.
+* Substituir o cabeçalho da Aba de Passivas por uma barra simples e amigável contendo apenas os **Pontos Disponíveis**, **Pontos Usados** e o botão **Reembolsar Pontos**.
+
+### 4.2. Regra 2: Remoção de `[Mordida] 120%` e Todas as Porcentagens Logo Abaixo
+* **Remover integralmente** a seção `.passive-summary-footer` e a grade `.summary-tags-row` no final de `PassiveTreeTab.jsx` (linhas 404–417), que renderiza:
+  * ❌ `[Mordida] 120%`, `[Ataque] 100%`, `[Físico] 100%`, `[Sangramento] 100%`, `[Projétil] 100%`, `[Área] 100%`, `[Movimento] 100%`, `[Defesa] 100%`, `[Grito] 100%`, `[Buff] 100%`.
+* Nenhuma barra ou grade de porcentagens acumuladas por tag deve aparecer abaixo da árvore de passivas.
+
+### 4.3. Regra 3: Modificação de "Tipo de Nó" para "Tipo de Categoria" (Referente à Cor da Árvore de Passivas)
+* No grafo da árvore de passivas, os 4 ramos/quadrantes possuem cores distintas que identificam visualmente a categoria de cada grupo de passivas.
+* Em vez de exibir o antigo "Tipo de Nó" (`★ CHAVE ANGULAR (KEYSTONE)`, `◆ NÓ NOTÁVEL`, `● NÓ MENOR`), o inspetor e os filtros devem exibir o **`Tipo de Categoria`**, determinado diretamente pela **cor do ramo na árvore de passivas**:
+
+| Quadrante / Ramo | Cor na Árvore (Tema Infantil) | Nome do Tipo de Categoria Exibido na UI |
+| :---: | :---: | :--- |
+| **Noroeste (`NW`)** | **Rosa Coral (`#FF6B8B`)** | `Tipo de Categoria: Rosa Coral (Mordida & Ataque)` |
+| **Nordeste (`NE`)** | **Laranja Pêssego (`#FF9F43`)** | `Tipo de Categoria: Laranja Sol (Projéteis & Área)` |
+| **Sudoeste (`SW`)** | **Azul Bebê (`#38BDF8`)** | `Tipo de Categoria: Azul Bebê (Defesa & Fôlego)` |
+| **Sudeste (`SE`)** | **Verde Menta (`#2ED573`)** | `Tipo de Categoria: Verde Menta (Velocidade & Utilidade)` |
+
+* Os botões de navegação rápida acima do grafo também devem refletir as cores/categorias da árvore (sem mencionar `(75)` nós ou termos técnicos como `Keystones (18)` / `Notáveis (72)`).
+
+### 4.4. Regra 4: Inspetor da Aba de Passivas com APENAS Nome da Habilidade, Efeitos e Tipo de Categoria
+Quando o jogador passar o mouse ou selecionar um nó na Árvore de Passivas (`.passive-node-inspector`), o card informativo deve conter **exclusivamente** os 3 elementos abaixo:
+
+1. **Tipo de Categoria (baseado na cor da árvore de passivas):**
+   * Exemplo: `<span className="inspector-category-badge">🎨 Tipo de Categoria: Azul Bebê (Defesa & Fôlego)</span>` estilizado com a cor do nó (`hoveredNode.color`).
+2. **Nome da Habilidade Passiva:**
+   * Exemplo: `<div className="inspector-name">Couro Abissal</div>` (removendo prefixos como `"KEYSTONE: "` ou `"Notável: "` e códigos entre parênteses como `(NW-3)` para apresentar apenas o nome limpo da habilidade).
+3. **Seus Efeitos:**
+   * Exemplo: `<p className="inspector-desc">+12% de HP Máximo e +12% de Redução de Dano</p>` (removendo o prefixo `"Notável: "` da descrição quando houver).
+
+> [!WARNING]
+> **O que NÃO deve aparecer no inspetor da Aba de Passivas:**
+> * ❌ Não exibir `★ CHAVE ANGULAR (KEYSTONE)`, `◆ NÓ NOTÁVEL` ou `● NÓ MENOR`.
+> * ❌ Não exibir pills de tags como `[Mordida] ⚡`, `[Físico]`, `[Ataque]`.
+> * ❌ Não exibir códigos de quadrante ou contagens de limite `Cap 30/300`.
+
+```
++-----------------------------------------------------------------------------------+
+| [●] Tipo de Categoria: Azul Bebê (Defesa & Fôlego)                                |
+| Nome da Habilidade: Guelras Pressurizadas                                         |
+| Efeitos: +14% de Fôlego Máximo e +12% Regeneração de Fôlego                       |
++-----------------------------------------------------------------------------------+
+```
+
+---
+
+## 5. Remoção de Multiplicadores e Cálculos do Jogo — Dificuldade Apenas por Cores
+
+Toda a exposição de fórmulas matemáticas, números de dificuldade calculada (`D(T, A)`), multiplicadores (`1.0x`, `68.4x`, `+120%`) e contadores de densidade técnica (`Pack Size N_max`) deve ser **removida da interface**, substituindo esses dados técnicos por **Indicadores Visuais de Dificuldade por Cores**.
+
+### 5.1. O que deve ser removido na Interface
+1. **Na Aba de Dificuldade / Mapa (`client/src/components/MapDeviceTab.jsx`):**
+   * ❌ Remover a grade `.pred-metrics-grid` com os números `Dificuldade D(T, A)` (`10.0`, `Base D₀=10 • λ=0.28/Tier`), `Pack Size (N_max)` (`14 peixes`), `Multiplicador XP` (`1.0x`) e `Mult. Biomassa` (`1.0x`).
+   * ❌ Remover a faixa de fórmula matemática `.formula-strip` (`D(T, A) = 10 · (1.28)^(T-1) · (1 + Σ w_k·a_k) · Π (1 + m_i) | N_max = ...`).
+   * ❌ Remover a pílula `+28% Composto / Tier` no seletor de Tier.
+   * ❌ Remover o texto `• +1.5 entidades/afixo` e as pílulas matemáticas `m=+20% | w=0.005` (`.affix-math-pill`) de cada card de afixo.
+   * ❌ Remover a `TABELA COMPARATIVA DE ESCALA E PRESETS (SEÇÃO 6.4)` que exibe colunas numéricas de `Dif. (D)`, `Pack (N_max)` e `Mult. XP`.
+2. **Na Aba de Habilidades (`client/src/components/SkillsLoadoutTab.jsx`):**
+   * ❌ Remover percentuais de multiplicador total ao lado do dano (`(120%)`), bônus percentuais nas tags (`[Mordida] +20%`) e o texto `• Sinergia Atual: 100%` na listagem do catálogo.
+3. **Nos Overlays e HUD do Oceano (`client/src/components/OceanCanvas.jsx`):**
+   * ❌ No overlay de "Pronto para Mergulhar" (`expeditionState === 'pronto'`), remover o texto `Dificuldade Exponencial D = ... • Máx. X entidades na tela • Multiplicador XP Yx`, substituindo pelo **Selo de Cor da Dificuldade Atual**.
+   * ❌ No HUD inferior de habilidades, remover `Sinergia X%`.
+
+### 5.2. Novo Sistema de Indicadores de Dificuldade por Cores
+Em vez de números e fórmulas, a dificuldade do jogo e do mapa é comunicada **exclusivamente por cores intuitivas** (Termômetro / Escala Cromática Infantil):
+
+| Nível de Dificuldade | Cor Indicadora (Hex) | Nome Visual / Rótulo da Cor | Aplicação Visual na UI |
+| :--- | :---: | :--- | :--- |
+| **Calmo (Seguro)** | 🟢 **Verde Menta (`#2ED573`)** | **Cor Verde — Águas Calmas** | Fundo/borda verde suave, ícone de estrela/gota verde |
+| **Fácil** | 🔵 **Azul Bebê (`#38BDF8`)** | **Cor Azul — Brisa Suave** | Fundo/borda azul celeste claro |
+| **Moderado / Desafiador** | 🟡 **Amarelo Sol (`#FACC15`)** | **Cor Amarela — Correnteza Agitada** | Fundo/borda amarelo ouro infantil |
+| **Difícil (Mortal)** | 🟠 **Laranja Coral (`#FB923C`)** | **Cor Laranja — Mar Perigoso** | Fundo/borda laranja vibrante |
+| **Muito Difícil (Extremo)** | 🔴 **Rosa/Vermelho (`#F43F5E`)** | **Cor Vermelha — Alerta de Predadores** | Fundo/borda vermelho/rosa forte |
+| **Desafio Máximo** | 🟣 **Roxo Real (`#A855F7`)** | **Cor Roxa — Profundezas Misteriosas** | Fundo/borda roxo/lilás intenso |
+
+### 5.3. Como fica a Nova Aba de Dificuldade (`MapDeviceTab.jsx`)
+1. **Painel Principal de Dificuldade por Cor (`.difficulty-color-banner`):**
+   * Exibe um grande **Indicador Cromático (Orbe / Barra de Cores)** que muda de cor dinamicamente conforme o jogador escolhe a zona (Tier) e os modificadores do mar (Afixos).
+   * Exibe uma **Escala Visual de 6 Cores** (Verde $\rightarrow$ Azul $\rightarrow$ Amarelo $\rightarrow$ Laranja $\rightarrow$ Vermelho $\rightarrow$ Roxo) destacando com brilho a cor da dificuldade atual, sem nenhum número, fórmula ou multiplicador.
+2. **Seletor de Zona / Profundidade Colorido:**
+   * Os botões de escolha de mapa (`T1` a `T16`) são coloridos de acordo com sua faixa de cor de dificuldade (ex.: T1–T2 Verde, T3–T5 Azul, T6–T8 Amarelo, T9–T11 Laranja, T12–T14 Vermelho, T15–T16 Roxo).
+3. **Modificadores do Mar (Afixos) Indicados por Cor:**
+   * Cada card de modificador exibe apenas um **indicador colorido de intensidade** (círculo/etiqueta na cor do desafio) + **Nome do Modificador** + **Descrição do efeito ambiental**, sem valores de `m=+X%` ou `w=Y`.
+
+---
+
+## 6. Mapeamento Detalhado de Mudanças por Arquivo
+
+### 6.1. `client/src/App.jsx`
+1. Remover `import CenterTelemetryColumn from './components/CenterTelemetryColumn';`.
+2. Na Topbar (`.abyssal-topbar`):
+   * Alterar o título do card de nível de `NÍVEL (REGRA 1:10)` para `NÍVEL DO TUBARÃO`.
+   * Remover o trecho `<small>({profile.pontosPassivaAlocados}/300 nós)</small>`, exibindo apenas `Nv. {profile.nivel}`.
+3. No `<main className="abyssal-tripartite-grid">`:
+   * Remover toda a `<section className="tri-col col-center-telemetry">...</section>`.
+   * Manter apenas `.col-left-ocean` e `.col-right-management`.
+4. Na barra de abas (`.persistent-tabs-bar`):
+   * Na aba `🌳 Passivas`, exibir o badge simples de pontos alocados (`{profile.pontosPassivaAlocados} pts`) sem menção a `/30` da regra de proporção.
+   * Na aba `🗺️ Dificuldade`, exibir uma **bolinha/indicador na cor da dificuldade atual** em vez de códigos técnicos.
+5. No Footer (`.abyssal-footer`):
+   * Remover `• Regra 1:10 (300 Nós / Cap Nível 30)` e destacar claramente os atalhos: `Teclas de Atalho: [Q / Clique Esq.] Habilidade 1 • [W / Espaço / Clique Dir.] Habilidade 2`.
+
+### 6.2. `client/src/components/PassiveTreeTab.jsx`
+1. Criar helper `getCategoryByNode(node)` que mapeia `node.quadrant` / `node.color` para o nome amigável do **Tipo de Categoria** referente à cor da árvore:
+   * `NW` (`#FF6B8B` / `#f43f5e`) $\rightarrow$ `Categoria Rosa Coral — Mordida & Ataque`
+   * `NE` (`#FF9F43` / `#fa6400`) $\rightarrow$ `Categoria Laranja Sol — Projéteis & Área`
+   * `SW` (`#38BDF8` / `#00e5ff`) $\rightarrow$ `Categoria Azul Bebê — Defesa & Fôlego`
+   * `SE` (`#2ED573` / `#10b981`) $\rightarrow$ `Categoria Verde Menta — Velocidade & Utilidade`
+2. Criar helpers de limpeza textual `cleanSkillName(name)` (remove `"KEYSTONE: "` e sufixos `(NW-1)`) e `cleanSkillEffect(desc)` (remove `"Notável: "`) para exibir apenas o nome limpo da habilidade e seus efeitos.
+3. **Remover** o bloco `<div className="golden-ratio-banner">...</div>` e substituir por uma barra simples `.passive-top-toolbar` sem qualquer referência à regra de proporção 1:10 ou contagens `210 Menores • 72 Notáveis • 18 Keystones`.
+4. Simplificar a barra de busca/filtro para filtrar pelas **4 Categorias de Cores da Árvore** (`Todas as Cores`, `Rosa Coral`, `Laranja Sol`, `Azul Bebê`, `Verde Menta`), sem botões `★ Keystones (18)` ou `◆ Notáveis (72)`.
+5. No `.passive-node-inspector`:
+   * Renderizar **apenas**:
+     * **Tipo de Categoria:** `<span className="inspector-type-badge">Tipo de Categoria: {categoryInfo.label}</span>` (com a cor da categoria na árvore);
+     * **Nome da Habilidade:** `<div className="inspector-name"><strong>Habilidade:</strong> {cleanSkillName(hoveredNode.name)}</div>`;
+     * **Efeitos:** `<p className="inspector-desc"><strong>Efeitos:</strong> {cleanSkillEffect(hoveredNode.description)}</p>`.
+6. **Remover** integralmente o bloco `<div className="passive-summary-footer">...</div>` que continha `[Mordida] 120%` e todas as porcentagens logo abaixo.
+
+### 6.3. `client/src/components/MapDeviceTab.jsx`
+1. **Remover** o painel `.predictive-telemetry-card` com números de `D(T, A)`, `Pack Size`, `Multiplicador XP`, `Mult. Biomassa` e a `.formula-strip`.
+2. **Criar** o novo painel `.difficulty-color-indicator-card` contendo:
+   * O selo grande com a **Cor da Dificuldade Atual**;
+   * A **Barra de Escala de Dificuldade por Cores** (6 blocos cromáticos: Verde, Azul, Amarelo, Laranja, Vermelho, Roxo) indicando visualmente o nível de perigo atual.
+3. **Remover** a pílula `+28% Composto / Tier`, o texto `+1.5 entidades/afixo`, as pílulas `m=+X% | w=Y` nos afixos e a tabela numérica `TABELA COMPARATIVA DE ESCALA E PRESETS`.
+4. Colorir cada botão de zona/mapa e cada card de modificador apenas com seu indicador visual de cor.
+
+### 6.4. `client/src/components/OceanCanvas.jsx`
+1. Atualizar as cores de fundo do Canvas 2D na função `drawCanvas()` para tons infantis de **Azul Bebê (`#B3E5FC` $\rightarrow$ `#89CFF0` $\rightarrow$ `#63B3ED`)**.
+2. No cabeçalho `.ocean-panel-header` e no overlay `expeditionState === 'pronto'`, exibir apenas o **Indicador de Dificuldade por Cor** (sem `D = ...`, sem `Máx. entidades` e sem `Multiplicador XP`).
+3. No `.ocean-bottom-hud` (HUD Inferior de Habilidades Ativas):
+   * Adicionar um **Keycap Visual Grande (`.hud-keycap-badge`)** em cada um dos 2 slots de habilidades ativas (`TECLA [ Q ]` / `Clique Esq.` para o Slot 1 e `TECLA [ W ]` / `[ ESPAÇO ]` / `Clique Dir.` para o Slot 2).
+   * Remover `Sinergia X%`.
+
+### 6.5. `client/src/components/SkillsLoadoutTab.jsx`
+1. Nos 2 slots equipados (`.equipped-slots-container`):
+   * Adicionar um **Indicador de Tecla de Atalho em Destaque (`.slot-keybind-prominent`)** com keycaps grandes (`[ Q ]` para o Slot 1 e `[ W ] / [ ESPAÇO ]` para o Slot 2).
+   * Remover os multiplicadores percentuais (`(120%)`, `+20%`, `Sinergia Atual: 100%`).
+2. Nos botões do catálogo de habilidades:
+   * Rotular de forma clara: `Equipar Slot 1 [Tecla Q]` e `Equipar Slot 2 [Tecla W]`.
+
+### 6.6. `client/src/App.css` e `client/src/index.css`
+1. Redefinir todas as variáveis CSS em `:root` e estilos globais para o **Tema Infantil Azul Bebê** (`#D6F0FF`, `#EBF8FF`, `#89CFF0`, `#FFFFFF`, texto `#1E3A5F`, destaques em Rosa Pastel, Amarelo Sol, Verde Menta e Lavanda).
+2. Alterar `.abyssal-tripartite-grid` para `grid-template-columns: 56% 44%;`.
+3. Adicionar estilização de alto destaque para `.hud-keycap-badge`, `.slot-keybind-prominent` e `.difficulty-color-scale` (indicadores de dificuldade exclusivamente por cores).
+
+---
+
+## 7. Critérios de Aceite e Checklist de Verificação
+
+- [ ] **Coluna "Telemetria & Combate Rápido" Removida:** A tela principal possui apenas 2 colunas (Oceano à esquerda e Abas à direita); nenhum componente ou seção "Telemetria & Combate Rápido" é exibido.
+- [ ] **Tema Infantil Azul Bebê Aplicado:** O fundo da aplicação, topbar, cards, abas, árvore de passivas e o oceano no Canvas utilizam cores claras, alegres e infantis coordenadas com Azul Bebê (`#89CFF0` / `#D6F0FF`).
+- [ ] **Indicadores de Teclas de Atalho Visíveis e Aparentes:** Tanto no HUD do jogo quanto na aba de Skills, há indicadores grandes em formato de tecla (`[ Q ]` e `[ W ] / [ ESPAÇO ]`) que deixam imediatamente óbvio qual atalho aciona cada habilidade ativa.
+- [ ] **Aba de Passivas — Inspetor Simplificado:** Ao inspecionar qualquer nó na árvore de passivas, aparecem **apenas** o **Nome da Habilidade**, **Seus Efeitos** e o **Tipo de Categoria** (referente à cor da árvore de passivas), sem exibir "Tipo de Nó" (Menor/Notável/Keystone) e sem exibir tags.
+- [ ] **Aba de Passivas — Sem `[Mordida] 120%` e Porcentagens Abaixo:** A barra inferior com `[Mordida] 120%` e todas as demais porcentagens de tags foi 100% removida.
+- [ ] **Aba de Passivas — Sem Regras de Proporções:** O banner e os textos sobre a "Regra da Proporção 1:10 (300 Nós / Cap 30 / 10%)" foram 100% removidos.
+- [ ] **Sem Multiplicadores ou Cálculos Matemáticos — Dificuldade Apenas por Cores:** Todos os textos e painéis de fórmulas (`D(T, A)`, `N_max`), multiplicadores (`1.0x`, `+28%/Tier`, `m=+20% | w=0.005`, `Sinergia X%`) e tabelas comparativas numéricas foram removidos, restando apenas os **indicadores de dificuldade por cores** (escala cromática Verde, Azul, Amarelo, Laranja, Vermelho e Roxo).

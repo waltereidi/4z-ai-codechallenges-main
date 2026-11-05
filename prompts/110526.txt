@@ -1,0 +1,11 @@
+gere uma spec para o projeto atual na pasta /home/walter/repos/4z5s/4z-ai-codechallenges-main/prompts com o nome spec11152026.txt 
+que modifique a interface do jogo e remova a telemetria & combate rápido
+modifique o tema da tela para utilizar cores com tonalidade infantil e que combinem com a tonalidade azul bebe 
+adicione indicadores mais visiveis para as teclas de atalho na interface do jogo, que deve ficar visível e aparente qual tecla de
+atalho ativa cada habilidade ativa 
+--- para a aba de passivas , deve haver apenas as informações sobre o nome da habilidades ,seus efeitos e modifique a informação de tipo de nó
+para tipo de categoria que se refere a cor da arvore de passivas. 
+remova as informações que contenham [mordida] 120% e todas as porcentagens logo abaixo e remova as informações de regras de proporções.
+
+---adicione a spec para que sejam removidos os indicativos de multiplicadores e calculo do jogo, deixando apenas a indicadores de
+dificuldade por cores 
