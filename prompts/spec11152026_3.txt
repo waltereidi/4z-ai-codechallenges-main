@@ -1,0 +1,484 @@
+# Especificação de Infraestrutura, CI/CD e HTTPS: SharkTank
+**Arquivo de Especificação:** `prompts/spec11152026_3.txt`  
+**Projeto Alvo:** `SharkTank` (`/home/walter/repos/4z5s/4z-ai-codechallenges-main`)  
+**Repositório GitHub:** `https://github.com/waltereidi/4z-ai-codechallenges-main` (branch `main`)
+
+> [!IMPORTANT]
+> Esta especificação define as etapas técnicas para:
+> 1. **Acessar o servidor via SSH** com a chave `ed25519` gerada na VM de desenvolvimento (`~/.ssh/id_ed25519`).
+> 2. **Configurar os Secrets do repositório GitHub** com as informações do servidor (host, porta, usuário, chave de deploy, known_hosts e caminho de deploy).
+> 3. **Criar um workflow do GitHub Actions** (`.github/workflows/deploy.yml`) que valida o build e faz o deploy automático no servidor a cada push na `main`.
+> 4. **Preparar o servidor** (Docker, Git, usuário de deploy, firewall, diretório da aplicação) para receber o deploy do workflow.
+> 5. **Configurar o Nginx** para publicar a página na **porta 443 (HTTPS)**, fazendo **proxy reverso para a aplicação React/Express na porta local `5173`**.
+> 6. **Redirecionar todo o tráfego HTTP (porta 80) para HTTPS** com `301 Moved Permanently`.
+
+---
+
+## 0. Dados de Entrada Necessários (Pré-requisitos)
+
+A execução desta spec depende das informações abaixo. Os valores entre `< >` são **placeholders** e devem ser substituídos antes da implementação.
+
+| Variável | Descrição | Valor |
+| :--- | :--- | :--- |
+| `<SERVER_HOST>` | IP público ou hostname do servidor (ex.: VSI na IBM Cloud) | **a informar** |
+| `<SERVER_SSH_PORT>` | Porta SSH do servidor | `22` (padrão) |
+| `<SERVER_ADMIN_USER>` | Usuário administrativo com `sudo` usado para preparar o servidor | **a informar** |
+| `<DOMAIN>` | Domínio apontando (registro DNS `A`) para `<SERVER_HOST>` | **a informar** (ou usar apenas o IP — ver Seção 5.3) |
+| `<LETSENCRYPT_EMAIL>` | E-mail para registro e avisos de expiração do Let's Encrypt | **a informar** |
+| `DEPLOY_USER` | Usuário sem privilégios de root dedicado ao deploy | `deploy` |
+| `DEPLOY_PATH` | Diretório da aplicação no servidor | `/opt/sharktank` |
+
+### 0.1. Pré-requisitos já atendidos
+* **Chave SSH da VM de desenvolvimento:** `~/.ssh/id_ed25519` (`SHA256:wB2knOdPq48Dy3g1cMNFJwACQnDL10jg7KHnaWOsD6Y`). A chave pública deve estar em `~/.ssh/authorized_keys` de `<SERVER_ADMIN_USER>` no servidor.
+* **Token do GitHub (fine-grained)** armazenado em `~/.git-credentials` (`credential.helper store`), validado para o repositório `waltereidi/4z-ai-codechallenges-main`, com validade até `2027-01-04`.
+
+### 0.2. Permissões obrigatórias do token fine-grained
+O token deve possuir, **no repositório `4z-ai-codechallenges-main`**, as permissões:
+
+| Permissão | Nível | Motivo |
+| :--- | :--- | :--- |
+| `Contents` | **Read and write** | `git push` dos commits e do workflow |
+| `Workflows` | **Read and write** | Obrigatório para enviar arquivos em `.github/workflows/` |
+| `Secrets` | **Read and write** | Criar os Secrets do repositório |
+| `Actions` | **Read and write** | Acompanhar/reexecutar execuções do workflow |
+| `Metadata` | Read-only | Padrão obrigatório |
+
+> [!WARNING]
+> Sem a permissão `Workflows: Read and write`, o GitHub **rejeita o push** de qualquer arquivo em `.github/workflows/`. Sem `Secrets: Read and write`, a criação dos Secrets falha com `403`.
+
+### 0.3. Pré-requisito externo (Console da IBM Cloud)
+O **Security Group** da VSI na IBM Cloud VPC deve permitir tráfego de entrada (**inbound**) TCP nas portas **`22`**, **`80`** e **`443`**. Essa regra é configurada no console da IBM Cloud e **não pode ser aplicada via SSH**. A porta `5173` **não** deve ser liberada externamente.
+
+---
+
+## 1. Acesso ao Servidor via SSH
+
+### 1.1. Teste de conectividade e registro do host
+```bash
+ssh-keyscan -p <SERVER_SSH_PORT> -H <SERVER_HOST> >> ~/.ssh/known_hosts
+ssh -p <SERVER_SSH_PORT> <SERVER_ADMIN_USER>@<SERVER_HOST> 'uname -a && lsb_release -ds && sudo -n true && echo SUDO_OK'
+```
+
+### 1.2. Atalho em `~/.ssh/config` (VM de desenvolvimento)
+```
+Host sharktank-server
+    HostName <SERVER_HOST>
+    Port <SERVER_SSH_PORT>
+    User <SERVER_ADMIN_USER>
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+```
+
+### 1.3. Critérios de aceite
+* `ssh sharktank-server` conecta **sem senha**.
+* O usuário administrativo executa `sudo` (`SUDO_OK`).
+* SO alvo suportado: **Ubuntu 22.04 LTS / 24.04 LTS** ou **Debian 12**.
+
+---
+
+## 2. Preparação do Servidor para o Deploy
+
+Todos os comandos abaixo são executados no servidor como `<SERVER_ADMIN_USER>` (com `sudo`).
+
+### 2.1. Pacotes base
+```bash
+sudo apt-get update && sudo apt-get -y upgrade
+sudo apt-get install -y ca-certificates curl git ufw nginx certbot python3-certbot-nginx
+```
+
+### 2.2. Docker Engine + Docker Compose Plugin (repositório oficial)
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/$(. /etc/os-release && echo "$ID")/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release && echo "$ID") $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+```
+
+### 2.3. Memória Swap (servidores com 1 GB de RAM)
+O build do Vite e a compilação nativa do `better-sqlite3` podem exceder 1 GB. Criar **2 GB de swap** quando `free -m` indicar menos de 2 GB de RAM:
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 2.4. Usuário dedicado de deploy (`deploy`)
+```bash
+sudo adduser --disabled-password --gecos "" deploy
+sudo usermod -aG docker deploy
+sudo mkdir -p /home/deploy/.ssh && sudo chmod 700 /home/deploy/.ssh
+sudo touch /home/deploy/.ssh/authorized_keys && sudo chmod 600 /home/deploy/.ssh/authorized_keys
+sudo chown -R deploy:deploy /home/deploy/.ssh
+```
+
+### 2.5. Chave SSH exclusiva do GitHub Actions
+Gerar um **par de chaves dedicado** ao workflow (separado da chave pessoal da VM de desenvolvimento):
+```bash
+ssh-keygen -t ed25519 -a 64 -N "" -C "github-actions-deploy@sharktank" -f ~/.ssh/sharktank_gha_deploy
+```
+* **Chave pública** (`sharktank_gha_deploy.pub`) → anexada a `/home/deploy/.ssh/authorized_keys` no servidor.
+* **Chave privada** (`sharktank_gha_deploy`) → Secret `SSH_PRIVATE_KEY` do GitHub (Seção 3). Após o cadastro do Secret, a cópia local da chave privada deve ser removida.
+
+### 2.6. Diretório da aplicação e clone inicial
+```bash
+sudo mkdir -p /opt/sharktank && sudo chown deploy:deploy /opt/sharktank
+sudo -u deploy git clone https://github.com/waltereidi/4z-ai-codechallenges-main.git /opt/sharktank
+sudo -u deploy bash -c 'cd /opt/sharktank && docker compose up -d --build'
+```
+> [!NOTE]
+> O repositório é **público**, portanto o servidor clona e atualiza via HTTPS **sem credenciais**. Caso o repositório se torne privado, deve-se cadastrar uma **Deploy Key somente leitura** no GitHub para o usuário `deploy`.
+
+### 2.7. Firewall (UFW)
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow OpenSSH        # ou: sudo ufw allow <SERVER_SSH_PORT>/tcp
+sudo ufw allow 'Nginx Full'   # 80/tcp e 443/tcp
+sudo ufw --force enable
+```
+> [!CAUTION]
+> Liberar a porta SSH **antes** de executar `ufw enable` para não perder o acesso ao servidor.
+
+### 2.8. Critérios de aceite
+* `docker compose version` e `nginx -v` respondem no servidor.
+* `sudo -u deploy docker ps` funciona sem `sudo` (usuário no grupo `docker`).
+* `curl -fsS http://127.0.0.1:5173/` retorna o HTML com `<title>SharkTank</title>`.
+* `ufw status` lista apenas SSH, `80` e `443` liberados.
+
+---
+
+## 3. Secrets do Repositório GitHub
+
+### 3.1. Lista de Secrets (Settings → Secrets and variables → Actions)
+
+| Secret | Conteúdo | Origem |
+| :--- | :--- | :--- |
+| `SSH_HOST` | `<SERVER_HOST>` | Dados de entrada |
+| `SSH_PORT` | `<SERVER_SSH_PORT>` | Dados de entrada |
+| `SSH_USER` | `deploy` | Seção 2.4 |
+| `SSH_PRIVATE_KEY` | Conteúdo integral de `~/.ssh/sharktank_gha_deploy` | Seção 2.5 |
+| `SSH_KNOWN_HOSTS` | Saída de `ssh-keyscan -p <SERVER_SSH_PORT> <SERVER_HOST>` | Fixa a identidade do servidor (evita MITM) |
+| `DEPLOY_PATH` | `/opt/sharktank` | Seção 2.6 |
+| `APP_HEALTHCHECK_URL` | `https://<DOMAIN>/` (ou `https://<SERVER_HOST>/`) | Verificação pós-deploy |
+
+### 3.2. Método de cadastro
+O cadastro é feito com a **GitHub CLI (`gh`)**, autenticada com o token fine-grained já armazenado na VM (sem expor o valor em logs):
+```bash
+# Instalação local da gh CLI (binário oficial em ~/.local/bin, sem sudo)
+# Autenticação: gh auth login --with-token < arquivo_temporario_do_token
+REPO=waltereidi/4z-ai-codechallenges-main
+gh secret set SSH_HOST            -R $REPO -b "<SERVER_HOST>"
+gh secret set SSH_PORT            -R $REPO -b "<SERVER_SSH_PORT>"
+gh secret set SSH_USER            -R $REPO -b "deploy"
+gh secret set SSH_PRIVATE_KEY     -R $REPO < ~/.ssh/sharktank_gha_deploy
+ssh-keyscan -p <SERVER_SSH_PORT> <SERVER_HOST> 2>/dev/null | gh secret set SSH_KNOWN_HOSTS -R $REPO
+gh secret set DEPLOY_PATH         -R $REPO -b "/opt/sharktank"
+gh secret set APP_HEALTHCHECK_URL -R $REPO -b "https://<DOMAIN>/"
+gh secret list -R $REPO
+```
+> [!NOTE]
+> A API REST de Secrets exige criptografia *sealed box* (libsodium) com a chave pública do repositório; a `gh` CLI realiza esse processo automaticamente.
+
+### 3.3. Critérios de aceite
+* `gh secret list` exibe os **7 Secrets** acima.
+* Nenhum valor de Secret aparece em commits, arquivos do repositório ou logs do workflow.
+
+---
+
+## 4. Workflow de CI/CD (`.github/workflows/deploy.yml`)
+
+### 4.1. Gatilhos e comportamento
+* **Gatilhos:** `push` na branch `main` e execução manual (`workflow_dispatch`).
+* **Concorrência:** grupo `deploy-production` com `cancel-in-progress: false` (nunca dois deploys simultâneos).
+* **Job 1 — `build`:** valida que a imagem Docker compila no runner do GitHub (`docker build`), impedindo que um commit quebrado chegue ao servidor.
+* **Job 2 — `deploy`** (depende de `build`): conecta via SSH com a chave dedicada, atualiza o código em `DEPLOY_PATH` para o commit exato do push, reconstrói e reinicia o contêiner com `docker compose up -d --build`, remove imagens órfãs e executa health check local e público.
+
+### 4.2. Conteúdo do arquivo
+```yaml
+name: Build & Deploy SharkTank
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Validar build da imagem Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build da imagem (sem push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: sharktank:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy no servidor via SSH
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configurar chave SSH e known_hosts
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Atualizar código e reiniciar contêiner
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' TARGET_SHA='$TARGET_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          git fetch --prune origin main
+          git reset --hard "$TARGET_SHA"
+          docker compose up -d --build --remove-orphans
+          docker image prune -f
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then
+              echo "Health check local OK"; exit 0
+            fi
+            sleep 3
+          done
+          echo "Aplicação não respondeu em 127.0.0.1:5173" >&2
+          docker compose logs --tail=80
+          exit 1
+          REMOTE
+
+      - name: Health check público (HTTPS)
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS "${{ secrets.APP_HEALTHCHECK_URL }}" | grep -q "<title>SharkTank</title>"; then
+              echo "Página pública OK"; exit 0
+            fi
+            sleep 3
+          done
+          exit 1
+
+      - name: Remover chave SSH do runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+```
+
+### 4.3. Critérios de aceite
+* O push do arquivo `.github/workflows/deploy.yml` na `main` dispara o workflow automaticamente.
+* Os jobs `build` e `deploy` terminam com sucesso (✅) na aba **Actions**.
+* Após o deploy, o commit em execução no servidor (`git -C /opt/sharktank rev-parse HEAD`) é igual ao `github.sha` do workflow.
+* A execução manual (`Run workflow`) também realiza o deploy.
+
+---
+
+## 5. Nginx: HTTPS na Porta 443 com Proxy Reverso para `127.0.0.1:5173`
+
+### 5.1. Ajuste do `docker-compose.yml` (expor a aplicação apenas localmente)
+Com o Nginx publicando a aplicação, o contêiner deve escutar **somente em `127.0.0.1`**, para que a porta `5173` nunca fique acessível pela internet. Também remover o atributo obsoleto `version`:
+```yaml
+services:
+  shark-tank-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shark-tank-exile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      - PORT=5173
+      - NODE_ENV=production
+      - DB_PATH=/app/data/shark_tank.db
+    volumes:
+      - sqlite_data:/app/data
+
+volumes:
+  sqlite_data:
+    driver: local
+```
+> [!IMPORTANT]
+> O Docker insere regras próprias no `iptables` que **ignoram o UFW**. Publicar a porta como `127.0.0.1:5173:5173` é o que efetivamente impede o acesso externo à porta `5173`.
+
+### 5.2. Ajuste do backend Express (`server/src/index.js`)
+Adicionar `app.set('trust proxy', 1);` logo após a criação do `app`, para que o Express reconheça `X-Forwarded-Proto: https` e o IP real do cliente repassados pelo Nginx.
+
+### 5.3. Certificado TLS
+* **Com domínio (`<DOMAIN>`) — recomendado:** certificado gratuito do **Let's Encrypt** emitido via `certbot` (desafio HTTP-01 na porta 80), com **renovação automática** pelo timer `certbot.timer`.
+  ```bash
+  sudo mkdir -p /var/www/certbot
+  sudo certbot certonly --webroot -w /var/www/certbot -d <DOMAIN> \
+       --email <LETSENCRYPT_EMAIL> --agree-tos --no-eff-email --non-interactive
+  sudo systemctl enable --now certbot.timer
+  ```
+  Hook de renovação para recarregar o Nginx — `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`:
+  ```bash
+  #!/bin/sh
+  systemctl reload nginx
+  ```
+* **Sem domínio (apenas IP) — alternativa temporária:** certificado **autoassinado** em `/etc/ssl/sharktank/` (válido por 365 dias). O HTTPS funciona, mas o navegador exibirá **alerta de segurança**. Deve ser substituído por Let's Encrypt assim que houver domínio.
+  ```bash
+  sudo mkdir -p /etc/ssl/sharktank
+  sudo openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+       -keyout /etc/ssl/sharktank/privkey.pem -out /etc/ssl/sharktank/fullchain.pem \
+       -subj "/CN=<SERVER_HOST>" -addext "subjectAltName=IP:<SERVER_HOST>"
+  ```
+
+### 5.4. Ordem de ativação (evitar falha do Nginx sem certificado)
+1. Publicar **primeiro** apenas o bloco HTTP (porta 80) com o caminho `/.well-known/acme-challenge/`.
+2. Emitir o certificado (Seção 5.3).
+3. Publicar o arquivo completo (Seção 5.5), validar com `sudo nginx -t` e aplicar com `sudo systemctl reload nginx`.
+
+### 5.5. Configuração do site — `/etc/nginx/sites-available/sharktank`
+```nginx
+# ------------------------------------------------------------------
+# HTTP (porta 80): redireciona TODO o tráfego para HTTPS (301)
+# Exceção: desafio ACME do Let's Encrypt para emissão/renovação
+# ------------------------------------------------------------------
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <DOMAIN>;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# ------------------------------------------------------------------
+# HTTPS (porta 443): TLS + proxy reverso para a aplicação local 5173
+# ------------------------------------------------------------------
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name <DOMAIN>;
+
+    ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+    # Alternativa sem domínio (Seção 5.3):
+    # ssl_certificate     /etc/ssl/sharktank/fullchain.pem;
+    # ssl_certificate_key /etc/ssl/sharktank/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    client_max_body_size 2m;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    location / {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    60s;
+    }
+}
+```
+> [!NOTE]
+> Sem domínio, usar `server_name _;` nos dois blocos e as linhas de certificado autoassinado. A diretiva `http2 on;` requer Nginx ≥ 1.25.1; em versões anteriores (ex.: Ubuntu 22.04), usar `listen 443 ssl http2;` e remover `http2 on;`.
+
+### 5.6. Ativação
+```bash
+sudo ln -sf /etc/nginx/sites-available/sharktank /etc/nginx/sites-enabled/sharktank
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+sudo systemctl enable nginx
+```
+
+### 5.7. Critérios de aceite
+* `curl -I http://<DOMAIN>/` → **`301`** com `Location: https://<DOMAIN>/`.
+* `curl -I https://<DOMAIN>/` → **`200`**, com cabeçalho `Strict-Transport-Security`.
+* `curl -s https://<DOMAIN>/` contém `<title>SharkTank</title>`.
+* `curl -s -X POST https://<DOMAIN>/api/game/profile/reset -H 'Content-Type: application/json' -d '{"mode":"full"}'` retorna `"success":true`.
+* Acesso externo direto a `http://<SERVER_HOST>:5173/` **falha** (porta não exposta).
+* `sudo certbot renew --dry-run` conclui sem erros (somente com Let's Encrypt).
+
+---
+
+## 6. Alterações no Repositório (Resumo)
+
+| Arquivo | Ação |
+| :--- | :--- |
+| `.github/workflows/deploy.yml` | **Criar** — workflow de build e deploy (Seção 4.2) |
+| `docker-compose.yml` | **Alterar** — porta `127.0.0.1:5173:5173` e remoção de `version` (Seção 5.1) |
+| `server/src/index.js` | **Alterar** — `app.set('trust proxy', 1)` (Seção 5.2) |
+| `deploy/nginx/sharktank.conf` | **Criar** — cópia versionada da configuração do Nginx (Seção 5.5), sem segredos |
+| `README.md` | **Alterar** — seção "Deploy" descrevendo o fluxo `push → Actions → servidor` e os Secrets necessários |
+
+> [!WARNING]
+> A branch local `main` está **5 commits à frente** de `origin/main` (alterações das specs 1, 2 e do suporte mobile). Esses commits devem ser enviados (`git push origin main`) **antes ou junto** com o workflow, pois o deploy publica exatamente o conteúdo da `main` no GitHub.
+
+---
+
+## 7. Ordem de Execução
+
+```
+1. Coletar dados de entrada (Seção 0) e liberar 22/80/443 no Security Group da IBM Cloud
+2. Testar SSH com a chave da VM e criar o atalho sharktank-server            (Seção 1)
+3. Preparar o servidor: pacotes, Docker, swap, usuário deploy, firewall       (Seção 2.1–2.4, 2.7)
+4. Gerar a chave dedicada do GitHub Actions e autorizá-la no usuário deploy   (Seção 2.5)
+5. Alterar docker-compose.yml e server/src/index.js; commit + push da main    (Seções 5.1, 5.2, 6)
+6. Clonar o repositório em /opt/sharktank e subir o contêiner                 (Seção 2.6)
+7. Configurar Nginx (HTTP → certificado → HTTPS)                              (Seção 5)
+8. Cadastrar os 7 Secrets no GitHub e remover a chave privada local           (Seção 3)
+9. Criar .github/workflows/deploy.yml, commit + push → validar execução       (Seção 4)
+10. Executar todos os critérios de aceite das Seções 1.3, 2.8, 3.3, 4.3 e 5.7
+```
+
+---
+
+## 8. Segurança e Rollback
+
+* **Nenhum segredo é versionado:** chaves, tokens e IPs ficam apenas nos Secrets do GitHub e no servidor.
+* **Chaves separadas por finalidade:** chave pessoal da VM (administração) ≠ chave do GitHub Actions (deploy, usuário `deploy` sem `sudo`).
+* **Identidade do servidor fixada** via `SSH_KNOWN_HOSTS` (`StrictHostKeyChecking=yes`).
+* **Login SSH por senha** desabilitado após validar o acesso por chave (`PasswordAuthentication no` em `/etc/ssh/sshd_config`, seguido de `sudo systemctl reload ssh`).
+* **Rollback manual:** reexecutar o workflow a partir de um commit anterior, ou no servidor:
+  ```bash
+  cd /opt/sharktank && git reset --hard <SHA_ANTERIOR> && docker compose up -d --build
+  ```
+* **Rotação de credenciais:** o token fine-grained utilizado foi exposto em texto no chat de desenvolvimento e deve ser **substituído** por um novo token (mesmas permissões da Seção 0.2) após a conclusão desta spec.

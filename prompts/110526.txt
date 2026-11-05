@@ -37,3 +37,12 @@ deixe a aplicação compatível com a resolução mobile
 ** prompt 7 
 em resolução mobile as duas habilidades deve ocupar uma unica linha e devem ficar visivel junto com a tela de ação , 
 faça uma pesquisa nas resoluções mais utilizadas para quando o dispositivo móvel está em modo paisagem
+
+** 
+
+Gere uma spec com nome spec11152026_3.txt  na pasta /home/walter/repos/4z5s/4z-ai-codechallenges-main/prompts
+acesse o servidor com as credenciais SSH, modifique o repositório do github com as informações do servidor para adicionar os secrets necessários 
+crie um workflow, e prepare o servidor para o deploy do workflow. 
+configure o nginx para disponibilizar a pagina web para fora na porta 443. 
+configure o nginx para disponibilizar a pagina web como https redirecionando para o react hospedado na porta 5173 local 
+redirecione o http para https 
