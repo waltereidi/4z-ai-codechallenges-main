@@ -1,0 +1,16 @@
+{
+  "name": "4z-ai-codechallenges-backend",
+  "version": "1.0.0",
+  "description": "Backend API para plataforma de desafios de código de IA",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

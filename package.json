@@ -1,0 +1,15 @@
+{
+  "name": "4z-ai-codechallenges",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fullstack AI Code Challenges Platform",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "server": "npm --prefix server start",
+    "client": "npm --prefix client run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}
