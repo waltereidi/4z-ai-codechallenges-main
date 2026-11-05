@@ -23,7 +23,7 @@ export default function MapDeviceTab({
 
   return (
     <div className="map-device-tab">
-      {/* Painel Principal: Indicador de Dificuldade Exclusivamente por Cores */}
+      {/* Painel Principal: Informativo Colorido de Dificuldade (Sem Nome da Cor no Texto) */}
       <div
         className="difficulty-color-indicator-card"
         style={{
@@ -34,7 +34,7 @@ export default function MapDeviceTab({
         <div className="diff-color-header">
           <div className="diff-color-title">
             <Palette size={18} color={activeColorInfo.color} />
-            <span>INDICADOR DE DIFICULDADE POR COR</span>
+            <span>INDICADOR DE DIFICULDADE</span>
           </div>
           <span
             className="diff-active-color-pill"
@@ -51,7 +51,7 @@ export default function MapDeviceTab({
           {activeColorInfo.description}
         </p>
 
-        {/* Escala Cromática Visual de 6 Cores (Termômetro de Dificuldade por Cores) */}
+        {/* Escala Cromática Visual de 6 Níveis (Exibindo Apenas o Conteúdo Sequente) */}
         <div className="difficulty-color-scale">
           {DIFFICULTY_COLOR_SCALE.map((item) => {
             const isActive = item.id === activeColorInfo.id;
@@ -135,10 +135,10 @@ export default function MapDeviceTab({
         </div>
       </div>
 
-      {/* Modificadores do Mar Indicados Apenas por Cor */}
+      {/* Modificadores do Mar com Informativo Colorido (Apenas Conteúdo da Categoria) */}
       <div className="affixes-crafting-section">
         <div className="affixes-header">
-          <strong>DESAFIOS COLORIDOS DO MAR</strong>
+          <strong>DESAFIOS DO MAR</strong>
           {selectedAffixes.length > 0 && (
             <button
               type="button"
@@ -177,7 +177,7 @@ export default function MapDeviceTab({
                     }}
                   >
                     <span className="color-dot-inline" style={{ backgroundColor: affix.color }} />
-                    {affix.colorName || affix.category}
+                    {affix.category}
                   </span>
                 </div>
                 <p className="affix-desc">{affix.description}</p>

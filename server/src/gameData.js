@@ -409,8 +409,8 @@ function buildPassiveTree300() {
     {
       id: 'NW',
       code: 'Q1',
-      name: 'Categoria Rosa Coral: Mordida & Ataque',
-      shortName: 'Rosa Coral (Mordida & Ataque)',
+      name: 'Categoria: Mordida & Ataque',
+      shortName: 'Mordida & Ataque',
       color: '#FF6B8B',
       startAngleDeg: 192,
       endAngleDeg: 258,
@@ -472,8 +472,8 @@ function buildPassiveTree300() {
     {
       id: 'NE',
       code: 'Q2',
-      name: 'Categoria Laranja Sol: Projéteis & Área',
-      shortName: 'Laranja Sol (Projéteis & Área)',
+      name: 'Categoria: Projéteis & Área',
+      shortName: 'Projéteis & Área',
       color: '#FF9F43',
       startAngleDeg: 282,
       endAngleDeg: 348,
@@ -535,8 +535,8 @@ function buildPassiveTree300() {
     {
       id: 'SW',
       code: 'Q3',
-      name: 'Categoria Azul Bebê: Defesa & Fôlego',
-      shortName: 'Azul Bebê (Defesa & Fôlego)',
+      name: 'Categoria: Defesa & Fôlego',
+      shortName: 'Defesa & Fôlego',
       color: '#0284C7',
       startAngleDeg: 102,
       endAngleDeg: 168,
@@ -591,8 +591,8 @@ function buildPassiveTree300() {
     {
       id: 'SE',
       code: 'Q4',
-      name: 'Categoria Verde Menta: Velocidade & Utilidade',
-      shortName: 'Verde Menta (Velocidade & Utilidade)',
+      name: 'Categoria: Velocidade & Utilidade',
+      shortName: 'Velocidade & Utilidade',
       color: '#10B981',
       startAngleDeg: 12,
       endAngleDeg: 78,

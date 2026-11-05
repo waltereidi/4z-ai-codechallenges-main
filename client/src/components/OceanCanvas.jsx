@@ -3,6 +3,7 @@ import { Play, Pause, Skull, ShieldAlert, Compass, Keyboard, Palette } from 'luc
 import { SKILLS_CATALOG, BESTIARY_CATALOG, RARE_AFFIXES_CATALOG, getDifficultyColorInfo } from '../data/gameCatalog';
 
 export default function OceanCanvas({
+  sessionId,
   profile,
   passiveBonuses,
   mapTelemetry,
@@ -791,10 +792,10 @@ export default function OceanCanvas({
     prevExpStateRef.current = expeditionState;
   }, [expeditionState, resetWorldForExpedition]);
 
-  // Inicializa o mundo na montagem
+  // Inicializa ou reinicia o mundo quando a sessão atual do browser muda
   useEffect(() => {
     resetWorldForExpedition();
-  }, [resetWorldForExpedition]);
+  }, [resetWorldForExpedition, sessionId]);
 
   // Loop Principal de Física e Renderização Canvas 2D (60 FPS)
   useEffect(() => {
@@ -1921,7 +1922,7 @@ export default function OceanCanvas({
           <div className="ocean-freeze-overlay paused-mode">
             <div className="overlay-card">
               <div className="overlay-badge">JOGO PAUSADO</div>
-              <h3>Oceano Azul Bebê Pausado</h3>
+              <h3>Oceano Pausado</h3>
               <p>Você pode explorar as 3 abas ao lado ou continuar nadando quando quiser!</p>
               <button className="btn-confirm-dive" onClick={onTogglePause}>
                 <Play size={18} fill="#ffffff" />
@@ -1951,7 +1952,7 @@ export default function OceanCanvas({
 
               <p className="death-reconfig-hint">
                 Escolha novas esferas na <strong>Aba 1 (Passivas)</strong>, troque suas{' '}
-                <strong>2 Habilidades Ativas (Aba 2)</strong> ou mude a <strong>Cor da Dificuldade (Aba 3)</strong>:
+                <strong>2 Habilidades Ativas (Aba 2)</strong> ou mude a <strong>Dificuldade (Aba 3)</strong>:
               </p>
 
               <div className="death-quick-tabs">
@@ -1962,7 +1963,7 @@ export default function OceanCanvas({
                   ⚡ Aba 2: Habilidades ([Q] e [W])
                 </button>
                 <button type="button" className="btn-reconfig-tab" onClick={() => onSelectTab('mapa')}>
-                  🎨 Aba 3: Cor da Dificuldade
+                  🎨 Aba 3: Dificuldade
                 </button>
               </div>
 

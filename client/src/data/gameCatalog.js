@@ -221,8 +221,7 @@ export const MAP_AFFIXES_CATALOG = [
     m: 0.20,
     w: 0.005,
     category: 'Velocidade',
-    color: '#38bdf8',
-    colorName: 'Cor Azul Bebê'
+    color: '#38bdf8'
   },
   {
     id: 'aguas_turvas',
@@ -231,18 +230,16 @@ export const MAP_AFFIXES_CATALOG = [
     m: 0.22,
     w: 0.08,
     category: 'Ambiente',
-    color: '#8b5cf6',
-    colorName: 'Cor Lilás'
+    color: '#8b5cf6'
   },
   {
     id: 'cardumes_toxicos',
     name: 'Cardumes de Águas-Vivas',
-    description: 'Mais águas-vivas coloridas aparecem flutuando pelo oceano.',
+    description: 'Mais águas-vivas aparecem flutuando pelo oceano.',
     m: 0.28,
     w: 0.09,
     category: 'Veneno',
-    color: '#d946ef',
-    colorName: 'Cor Rosa Doce'
+    color: '#d946ef'
   },
   {
     id: 'enguias_eletricas',
@@ -251,8 +248,7 @@ export const MAP_AFFIXES_CATALOG = [
     m: 0.42,
     w: 0.18,
     category: 'Elétrico',
-    color: '#facc15',
-    colorName: 'Cor Amarela Sol'
+    color: '#facc15'
   },
   {
     id: 'reflexo_dano',
@@ -261,18 +257,16 @@ export const MAP_AFFIXES_CATALOG = [
     m: 0.38,
     w: 0.18,
     category: 'Físico',
-    color: '#fb923c',
-    colorName: 'Cor Laranja Coral'
+    color: '#fb923c'
   },
   {
     id: 'inimigos_raros',
-    name: 'Criaturas com Auras Coloridas',
+    name: 'Criaturas com Auras',
     description: 'Criaturas especiais com auras brilhantes aparecem com mais frequência.',
     m: 0.55,
     w: 0.28,
     category: 'Raros',
-    color: '#f43f5e',
-    colorName: 'Cor Vermelha Coral'
+    color: '#f43f5e'
   },
   {
     id: 'mare_acida',
@@ -281,8 +275,7 @@ export const MAP_AFFIXES_CATALOG = [
     m: 0.52,
     w: 0.24,
     category: 'Degeneração',
-    color: '#10b981',
-    colorName: 'Cor Verde Menta'
+    color: '#10b981'
   },
   {
     id: 'leviata_supremo',
@@ -291,8 +284,7 @@ export const MAP_AFFIXES_CATALOG = [
     m: 0.65,
     w: 0.35,
     category: 'Chefe',
-    color: '#a855f7',
-    colorName: 'Cor Roxa Real'
+    color: '#a855f7'
   }
 ];
 
@@ -304,9 +296,9 @@ export const DIFFICULTY_COLOR_SCALE = [
     bgLight: '#E3FCEF',
     borderColor: '#52D1A0',
     textColor: '#065F46',
-    shortName: 'Cor Verde',
-    label: 'Cor Verde — Águas Calmas',
-    description: 'Passeio tranquilo e seguro nas águas rasas azul-bebê.'
+    shortName: 'Águas Calmas',
+    label: 'Águas Calmas',
+    description: 'Passeio tranquilo e seguro nas águas rasas.'
   },
   {
     id: 'azul',
@@ -315,8 +307,8 @@ export const DIFFICULTY_COLOR_SCALE = [
     bgLight: '#E0F2FE',
     borderColor: '#7DD3FC',
     textColor: '#0369A1',
-    shortName: 'Cor Azul Bebê',
-    label: 'Cor Azul Bebê — Brisa Suave',
+    shortName: 'Brisa Suave',
+    label: 'Brisa Suave',
     description: 'Correnteza leve e divertida com pequenos desafios marinhos.'
   },
   {
@@ -326,8 +318,8 @@ export const DIFFICULTY_COLOR_SCALE = [
     bgLight: '#FEF9C3',
     borderColor: '#FDE047',
     textColor: '#854D0E',
-    shortName: 'Cor Amarela',
-    label: 'Cor Amarela — Correnteza Agitada',
+    shortName: 'Correnteza Agitada',
+    label: 'Correnteza Agitada',
     description: 'Águas movimentadas que pedem atenção aos atalhos [Q] e [W].'
   },
   {
@@ -337,8 +329,8 @@ export const DIFFICULTY_COLOR_SCALE = [
     bgLight: '#FFEDD5',
     borderColor: '#FDBA74',
     textColor: '#9A3412',
-    shortName: 'Cor Laranja',
-    label: 'Cor Laranja — Mar Perigoso',
+    shortName: 'Mar Perigoso',
+    label: 'Mar Perigoso',
     description: 'Cardumes intensos e predadores atentos pelo caminho.'
   },
   {
@@ -348,8 +340,8 @@ export const DIFFICULTY_COLOR_SCALE = [
     bgLight: '#FFE4E6',
     borderColor: '#FDA4AF',
     textColor: '#9F1239',
-    shortName: 'Cor Vermelha',
-    label: 'Cor Vermelha — Alerta de Predadores',
+    shortName: 'Alerta de Predadores',
+    label: 'Alerta de Predadores',
     description: 'Grande desafio! Use suas habilidades e passivas em conjunto.'
   },
   {
@@ -359,8 +351,8 @@ export const DIFFICULTY_COLOR_SCALE = [
     bgLight: '#F3E8FF',
     borderColor: '#D8B4FE',
     textColor: '#6B21A8',
-    shortName: 'Cor Roxa',
-    label: 'Cor Roxa — Profundezas Misteriosas',
+    shortName: 'Profundezas Misteriosas',
+    label: 'Profundezas Misteriosas',
     description: 'Dificuldade máxima nas profundezas mágicas do oceano!'
   }
 ];

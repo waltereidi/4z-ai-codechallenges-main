@@ -446,10 +446,10 @@ app.post('/api/game/profile/progress', (req, res) => {
   }
 });
 
-// Reset de pontos de passiva ou perfil completo (para testes / reconfiguração rápida)
+// Reset de pontos de passiva ou perfil completo (usado para reiniciar o estado a cada reload do browser)
 app.post('/api/game/profile/reset', (req, res) => {
   try {
-    const { mode = 'passives' } = req.body || {};
+    const { mode = 'passives', sessionId = null, navigationType = 'navigate' } = req.body || {};
     const now = new Date().toISOString();
     if (mode === 'full') {
       db.prepare(`
@@ -466,9 +466,12 @@ app.post('/api/game/profile/reset', (req, res) => {
       `).run(now);
       db.prepare(`
         UPDATE mapa_config
-        SET tier = 1, dificuldade_calculada = 10.0, densidade_peixes_max = 14, afixos_json = '[]', status = 'pronto'
+        SET tier = 1, dificuldade_calculada = 10.0, densidade_peixes_max = 14, afixos_json = '[]', status = 'em_andamento'
         WHERE id = 'active_map'
       `).run();
+      db.prepare('DELETE FROM historico_expedicoes').run();
+      db.prepare('DELETE FROM peixes').run();
+      db.prepare('DELETE FROM peixes_comidos').run();
     } else {
       const row = db.prepare('SELECT nivel FROM jogador_build WHERE id = ?').get('alpha_shark');
       const nivel = row ? row.nivel : 1;
@@ -482,7 +485,16 @@ app.post('/api/game/profile/reset', (req, res) => {
     }
 
     const payload = getFullProfilePayload();
-    res.json({ success: true, ...payload });
+    res.json({
+      success: true,
+      session: {
+        sessionId: sessionId || `st_${Date.now().toString(36)}`,
+        navigationType,
+        resetConfirmed: mode === 'full',
+        resetTimestamp: now
+      },
+      ...payload
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

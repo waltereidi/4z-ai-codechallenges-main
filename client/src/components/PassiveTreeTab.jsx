@@ -8,32 +8,28 @@ const TREE_CATEGORIES = {
     color: '#FF6B8B',
     bgLight: '#FFE4EC',
     textColor: '#BE123C',
-    shortLabel: 'Cor Rosa Coral',
-    label: 'Rosa Coral (Mordida & Ataque)'
+    label: 'Mordida & Ataque'
   },
   NE: {
     id: 'NE',
     color: '#FF9F43',
     bgLight: '#FFF0E0',
     textColor: '#C2410C',
-    shortLabel: 'Cor Laranja Sol',
-    label: 'Laranja Sol (Projéteis & Área)'
+    label: 'Projéteis & Área'
   },
   SW: {
     id: 'SW',
     color: '#0284C7',
     bgLight: '#E0F2FE',
     textColor: '#0369A1',
-    shortLabel: 'Cor Azul Bebê',
-    label: 'Azul Bebê (Defesa & Fôlego)'
+    label: 'Defesa & Fôlego'
   },
   SE: {
     id: 'SE',
     color: '#10B981',
     bgLight: '#D1FAE5',
     textColor: '#047857',
-    shortLabel: 'Cor Verde Menta',
-    label: 'Verde Menta (Velocidade & Utilidade)'
+    label: 'Velocidade & Utilidade'
   }
 };
 
@@ -65,7 +61,6 @@ export default function PassiveTreeTab({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredNode, setHoveredNode] = useState(null);
 
@@ -123,28 +118,9 @@ export default function PassiveTreeTab({
     setZoom(z => Math.max(0.24, Math.min(1.45, Number((z * factor).toFixed(2)))));
   };
 
-  const focusQuadrant = (q) => {
-    if (q === 'CENTER') {
-      setPan({ x: 0, y: 0 });
-      setZoom(0.46);
-      setSelectedCategoryFilter('ALL');
-    } else if (q === 'NW') {
-      setPan({ x: 145, y: 145 });
-      setZoom(0.62);
-      setSelectedCategoryFilter('NW');
-    } else if (q === 'NE') {
-      setPan({ x: -145, y: 145 });
-      setZoom(0.62);
-      setSelectedCategoryFilter('NE');
-    } else if (q === 'SW') {
-      setPan({ x: 145, y: -145 });
-      setZoom(0.62);
-      setSelectedCategoryFilter('SW');
-    } else if (q === 'SE') {
-      setPan({ x: -145, y: -145 });
-      setZoom(0.62);
-      setSelectedCategoryFilter('SE');
-    }
+  const centerTree = () => {
+    setPan({ x: 0, y: 0 });
+    setZoom(0.46);
   };
 
   const handleNodeClick = (node) => {
@@ -175,7 +151,7 @@ export default function PassiveTreeTab({
 
   return (
     <div className="passive-tree-tab">
-      {/* Barra Superior Limpa (Sem Regra de Proporção 1:10) */}
+      {/* Barra Superior Limpa */}
       <div className="passive-top-toolbar">
         <div className="points-badges">
           <span className="pt-badge allocated">
@@ -197,46 +173,8 @@ export default function PassiveTreeTab({
         </button>
       </div>
 
-      {/* Controles de Categoria por Cor da Árvore e Busca */}
+      {/* Barra de Busca (Sem Seleção de Categorias) */}
       <div className="tree-controls-bar">
-        <div className="quadrant-jump-btns">
-          <button
-            type="button"
-            onClick={() => focusQuadrant('CENTER')}
-            className={`q-btn center ${selectedCategoryFilter === 'ALL' ? 'active-cat' : ''}`}
-          >
-            🌈 Todas as Cores
-          </button>
-          <button
-            type="button"
-            onClick={() => focusQuadrant('NW')}
-            className={`q-btn nw ${selectedCategoryFilter === 'NW' ? 'active-cat' : ''}`}
-          >
-            🌸 Rosa Coral
-          </button>
-          <button
-            type="button"
-            onClick={() => focusQuadrant('NE')}
-            className={`q-btn ne ${selectedCategoryFilter === 'NE' ? 'active-cat' : ''}`}
-          >
-            ☀️ Laranja Sol
-          </button>
-          <button
-            type="button"
-            onClick={() => focusQuadrant('SW')}
-            className={`q-btn sw ${selectedCategoryFilter === 'SW' ? 'active-cat' : ''}`}
-          >
-            💧 Azul Bebê
-          </button>
-          <button
-            type="button"
-            onClick={() => focusQuadrant('SE')}
-            className={`q-btn se ${selectedCategoryFilter === 'SE' ? 'active-cat' : ''}`}
-          >
-            🌿 Verde Menta
-          </button>
-        </div>
-
         <div className="tree-filter-row">
           <div className="tree-search-box full-search">
             <Search size={14} />
@@ -250,7 +188,7 @@ export default function PassiveTreeTab({
         </div>
       </div>
 
-      {/* Visualizador Interativo do Grafo em Tema Infantil Azul Bebê */}
+      {/* Visualizador Interativo do Grafo */}
       <div
         className="passive-graph-viewport"
         onMouseDown={handleMouseDown}
@@ -267,29 +205,29 @@ export default function PassiveTreeTab({
           <button type="button" onClick={() => setZoom(z => Math.max(0.24, Number((z - 0.12).toFixed(2))))} title="Reduzir Zoom">
             <ZoomOut size={15} />
           </button>
-          <button type="button" onClick={() => focusQuadrant('CENTER')} title="Centralizar Árvore">
+          <button type="button" onClick={centerTree} title="Centralizar Árvore">
             <Compass size={15} />
           </button>
         </div>
 
         <svg className="passive-graph-svg" viewBox="-420 -360 840 720">
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-            {/* Divisórias suaves das 4 Categorias de Cores */}
+            {/* Divisórias suaves das 4 Categorias */}
             <line x1="-820" y1="0" x2="820" y2="0" stroke="rgba(2, 132, 199, 0.2)" strokeDasharray="10 10" strokeWidth="2.5" />
             <line x1="0" y1="-820" x2="0" y2="820" stroke="rgba(2, 132, 199, 0.2)" strokeDasharray="10 10" strokeWidth="2.5" />
 
-            {/* Rótulos das 4 Categorias por Cor da Árvore */}
+            {/* Rótulos das 4 Categorias no Fundo do Grafo (Apenas Conteúdo Sequente, Sem Nome da Cor) */}
             <text x="-520" y="-560" fill="#E11D48" fontSize="22" fontWeight="800" textAnchor="middle">
-              CATEGORIA ROSA CORAL (MORDIDA & ATAQUE)
+              MORDIDA & ATAQUE
             </text>
             <text x="520" y="-560" fill="#EA580C" fontSize="22" fontWeight="800" textAnchor="middle">
-              CATEGORIA LARANJA SOL (PROJÉTEIS & ÁREA)
+              PROJÉTEIS & ÁREA
             </text>
             <text x="-520" y="590" fill="#0284C7" fontSize="22" fontWeight="800" textAnchor="middle">
-              CATEGORIA AZUL BEBÊ (DEFESA & FÔLEGO)
+              DEFESA & FÔLEGO
             </text>
             <text x="520" y="590" fill="#059669" fontSize="22" fontWeight="800" textAnchor="middle">
-              CATEGORIA VERDE MENTA (VELOCIDADE & UTILIDADE)
+              VELOCIDADE & UTILIDADE
             </text>
 
             {/* Arestas do Grafo */}
@@ -323,12 +261,12 @@ export default function PassiveTreeTab({
               );
             })}
 
-            {/* Nó Raiz Central: Núcleo Ancestral */}
+            {/* Nó Raiz Central */}
             <g transform="translate(0, 0)">
               <circle r={25} fill="#FFFFFF" stroke="#0284C7" strokeWidth={4.5} />
               <circle r={13} fill="#38BDF8" />
               <text y={42} fill="#1E3A5F" fontSize="15" fontWeight="800" textAnchor="middle">
-                Origem Azul Bebê
+                Origem
               </text>
             </g>
 
@@ -346,10 +284,6 @@ export default function PassiveTreeTab({
                 cleanedName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 cleanedEffect.toLowerCase().includes(searchQuery.toLowerCase());
 
-              const matchesCategory =
-                selectedCategoryFilter === 'ALL' || node.quadrant === selectedCategoryFilter;
-
-              const highlighted = matchesSearch && matchesCategory;
               const hasEquippedSynergy = node.tags.some(t => equippedSkillTags.has(t));
 
               const radius = node.type === 'keystone' ? 17 : node.type === 'notable' ? 12.5 : 9;
@@ -373,7 +307,7 @@ export default function PassiveTreeTab({
                   transform={`translate(${node.x}, ${node.y})`}
                   style={{
                     cursor: 'pointer',
-                    opacity: highlighted ? 1 : 0.2
+                    opacity: matchesSearch ? 1 : 0.2
                   }}
                   onMouseEnter={() => setHoveredNode(node)}
                   onClick={(e) => {
@@ -400,7 +334,7 @@ export default function PassiveTreeTab({
           </g>
         </svg>
 
-        {/* Inspetor Simplificado: APENAS Tipo de Categoria (Cor da Árvore), Nome da Habilidade e Efeitos */}
+        {/* Inspetor Simplificado: Badge Colorido com Conteúdo da Categoria, Nome da Habilidade e Efeitos */}
         <div className="passive-node-inspector" onMouseDown={(e) => e.stopPropagation()}>
           {hoveredNode && hoveredCat ? (
             <div className="inspector-simplified-content">
@@ -426,7 +360,7 @@ export default function PassiveTreeTab({
             </div>
           ) : (
             <div className="inspector-empty">
-              Passe o mouse sobre qualquer esfera colorida da árvore para ver o <strong>Tipo de Categoria (Cor)</strong>, o <strong>Nome da Habilidade</strong> e os <strong>Seus Efeitos</strong>.
+              Passe o mouse sobre qualquer esfera da árvore para ver o <strong>Tipo de Categoria</strong>, o <strong>Nome da Habilidade</strong> e os <strong>Seus Efeitos</strong>.
             </div>
           )}
         </div>

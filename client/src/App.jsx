@@ -1,11 +1,50 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Database, Award, Flame, Heart, Wind, Keyboard } from 'lucide-react';
+import { Database, Award, Flame, Heart, Wind } from 'lucide-react';
 import OceanCanvas from './components/OceanCanvas';
 import PassiveTreeTab from './components/PassiveTreeTab';
 import SkillsLoadoutTab from './components/SkillsLoadoutTab';
 import MapDeviceTab from './components/MapDeviceTab';
 import { calculateMapTelemetry, getDifficultyColorInfo } from './data/gameCatalog';
 import './App.css';
+
+function createPageSessionInfo() {
+  const navEntry = typeof performance !== 'undefined' && performance.getEntriesByType
+    ? performance.getEntriesByType('navigation')?.[0]
+    : null;
+  const navType = navEntry?.type || 'navigate';
+  let previousSessionId = null;
+  try {
+    previousSessionId = sessionStorage.getItem('sharktank_session_id');
+  } catch (_) {
+    previousSessionId = null;
+  }
+
+  const sessionId = `st_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+  const loadedAt = new Date().toISOString();
+
+  try {
+    sessionStorage.setItem('sharktank_session_id', sessionId);
+    sessionStorage.setItem('sharktank_previous_session_id', previousSessionId || 'none');
+    sessionStorage.setItem('sharktank_loaded_at', loadedAt);
+  } catch (_) {
+    // Ignore storage errors in restricted environments
+  }
+
+  const info = {
+    sessionId,
+    previousSessionId: previousSessionId || null,
+    navigationType: navType,
+    isReload: navType === 'reload' || Boolean(previousSessionId),
+    loadedAt,
+    screenFullyLoaded: false
+  };
+
+  if (typeof window !== 'undefined') {
+    window.__SHARKTANK_SESSION__ = info;
+  }
+
+  return info;
+}
 
 async function apiRequest(endpoint, options = {}) {
   try {
@@ -30,6 +69,9 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 export default function App() {
+  const [sessionInfo, setSessionInfo] = useState(() => createPageSessionInfo());
+  const [screenFullyLoaded, setScreenFullyLoaded] = useState(false);
+
   const [activeTab, setActiveTab] = useState('passivas'); // 'passivas' | 'skills' | 'mapa'
   const [profile, setProfile] = useState({
     id: 'alpha_shark',
@@ -111,14 +153,68 @@ export default function App() {
     }
   }, []);
 
-  // Carrega perfil inicial do backend SQLite WAL (GET /api/game/profile)
+  // Reinicia o estado do jogo toda vez que o browser reinicia/recarrega e detecta quando a tela carregou 100%
   useEffect(() => {
-    apiRequest('/game/profile').then((data) => {
-      if (data && data.success) {
-        applyServerPayload(data);
+    let isMounted = true;
+
+    const waitForWindowComplete = () =>
+      new Promise((resolve) => {
+        if (document.readyState === 'complete') {
+          resolve();
+        } else {
+          window.addEventListener('load', () => resolve(), { once: true });
+        }
+      });
+
+    const initializeFreshBrowserSession = async () => {
+      const [resetData] = await Promise.all([
+        apiRequest('/game/profile/reset', {
+          method: 'POST',
+          body: JSON.stringify({
+            mode: 'full',
+            sessionId: sessionInfo.sessionId,
+            navigationType: sessionInfo.navigationType
+          })
+        }),
+        waitForWindowComplete()
+      ]);
+
+      if (!isMounted) return;
+
+      if (resetData && resetData.success) {
+        applyServerPayload(resetData);
+      } else {
+        const fallbackData = await apiRequest('/game/profile');
+        if (isMounted && fallbackData && fallbackData.success) {
+          applyServerPayload(fallbackData);
+        }
       }
-    });
-  }, [applyServerPayload]);
+
+      setDeathReport(null);
+      setExpeditionState('em_andamento');
+      setScreenFullyLoaded(true);
+
+      const updatedSession = {
+        ...sessionInfo,
+        screenFullyLoaded: true,
+        fullyLoadedAt: new Date().toISOString()
+      };
+      setSessionInfo(updatedSession);
+
+      if (typeof window !== 'undefined') {
+        window.__SHARKTANK_SESSION__ = updatedSession;
+        window.dispatchEvent(
+          new CustomEvent('sharktank:screen-fully-loaded', { detail: updatedSession })
+        );
+      }
+    };
+
+    initializeFreshBrowserSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [applyServerPayload, sessionInfo.sessionId, sessionInfo.navigationType]);
 
   // Atalho de teclado [Tab] para alternar instantaneamente entre as 3 Abas Laterais sem pausar o oceano
   useEffect(() => {
@@ -140,7 +236,7 @@ export default function App() {
     setCombatLog((prev) => [ev, ...prev.slice(0, 24)]);
   }, []);
 
-  // Alocação de nós na Árvore de 300 Passivas (POST /api/game/passives/allocate)
+  // Alocação de nós na Árvore de Passivas
   const handleAllocateNodes = useCallback(async (nodeIds) => {
     const data = await apiRequest('/game/passives/allocate', {
       method: 'POST',
@@ -166,7 +262,7 @@ export default function App() {
     }
   }, [applyServerPayload]);
 
-  // Equipar 2 habilidades ativas (POST /api/game/skills/equip)
+  // Equipar 2 habilidades ativas
   const handleEquipSkills = useCallback(async (skillsArray) => {
     const data = await apiRequest('/game/skills/equip', {
       method: 'POST',
@@ -177,7 +273,7 @@ export default function App() {
     }
   }, [applyServerPayload]);
 
-  // Recalcular Dificuldade Exponencial no Map Device (POST /api/game/map/calculate)
+  // Recalcular Dificuldade no Map Device
   const recalculateMapOnServer = useCallback(async (nextTier, nextAffixes) => {
     const localTele = calculateMapTelemetry(
       nextTier,
@@ -215,7 +311,7 @@ export default function App() {
     recalculateMapOnServer(tierNum, affixesList);
   }, [recalculateMapOnServer]);
 
-  // Confirmar e Mergulhar (POST /api/game/expedition/start)
+  // Confirmar e Mergulhar
   const handleStartExpedition = useCallback(async () => {
     setDeathReport(null);
     const data = await apiRequest('/game/expedition/start', {
@@ -228,17 +324,17 @@ export default function App() {
     setExpeditionState('em_andamento');
     handleCombatLogEvent({
       type: 'system',
-      text: `Expedição iniciada em Tier ${selectedTier} (D=${mapTelemetry.difficulty}, Pack=${mapTelemetry.maxEntities})`
+      text: `Expedição iniciada em Zona ${selectedTier}`
     });
-  }, [selectedTier, selectedAffixes, mapTelemetry, applyServerPayload, handleCombatLogEvent]);
+  }, [selectedTier, selectedAffixes, applyServerPayload, handleCombatLogEvent]);
 
-  // Ciclo de Derrota e Congelamento Total (POST /api/game/expedition/finish)
+  // Ciclo de Derrota e Congelamento Total
   const handleExpeditionDeath = useCallback(async (report) => {
     setExpeditionState('derrota');
     setDeathReport(report);
     handleCombatLogEvent({
       type: 'death',
-      text: `💀 DERROTA em T${report.tier}: ${report.causaMorte}`
+      text: `💀 Fim do mergulho: ${report.causaMorte}`
     });
 
     if (report.unsyncedXp > 0 || report.unsyncedBiomass > 0) {
@@ -266,7 +362,7 @@ export default function App() {
     }
   }, [applyServerPayload, handleCombatLogEvent]);
 
-  // Sincronização contínua de XP e Biomassa para subir de nível (até o Cap 30) ao vivo
+  // Sincronização contínua de XP e Biomassa
   const handleLiveProgressGain = useCallback(async (xpDelta, biomassDelta) => {
     const data = await apiRequest('/game/profile/progress', {
       method: 'POST',
@@ -288,17 +384,28 @@ export default function App() {
   const currentDiffColor = getDifficultyColorInfo(mapTelemetry?.difficulty, selectedTier);
 
   return (
-    <div className="abyssal-app-shell">
+    <div
+      className="abyssal-app-shell"
+      data-session-id={sessionInfo.sessionId}
+      data-navigation-type={sessionInfo.navigationType}
+      data-screen-loaded={screenFullyLoaded ? 'true' : 'false'}
+    >
       {/* =====================================================================
-          TOPBAR INFANTIL (AZUL BEBÊ): Nível do Tubarão | Barra de XP | Biomassa | HP | Fôlego | Frenesi
+          TOPBAR: SharkTank (Sem Subtítulo) | Status da Sessão | Indicadores do Tubarão
           ===================================================================== */}
       <header className="abyssal-topbar">
         <div className="topbar-brand">
           <img src="/logo-4zoom-branco.png" alt="4zOOm" className="topbar-logo" />
           <div className="brand-titles">
-            <h1>SHARK TANK: OCEANO AZUL BEBÊ</h1>
-            <span className="brand-subtitle">Aventura Submarina Colorida • Use [Q] e [W] para Habilidades!</span>
+            <h1>SharkTank</h1>
           </div>
+          <span
+            className={`session-status-pill ${screenFullyLoaded ? 'ready' : 'loading'}`}
+            title={`Sessão Atual: ${sessionInfo.sessionId} (${sessionInfo.navigationType})`}
+          >
+            <span className="session-dot" />
+            {screenFullyLoaded ? `Sessão: ${sessionInfo.sessionId}` : 'Carregando Tela...'}
+          </span>
         </div>
 
         <div className="topbar-telemetry-strip">
@@ -377,12 +484,13 @@ export default function App() {
       </header>
 
       {/* =====================================================================
-          LAYOUT BIPARTIDO (56% | 44%) — SEM COLUNA DE TELEMETRIA & COMBATE RÁPIDO
+          LAYOUT BIPARTIDO (56% | 44%) — SEM RODAPÉ E SEM COLUNA DE TELEMETRIA
           ===================================================================== */}
       <main className="abyssal-tripartite-grid">
         {/* COLUNA ESQUERDA (56%): Oceano ao Vivo & Combate em Tempo Real */}
         <section className="tri-col col-left-ocean">
           <OceanCanvas
+            sessionId={sessionInfo.sessionId}
             profile={profile}
             passiveBonuses={passiveBonuses}
             mapTelemetry={mapTelemetry}
@@ -477,22 +585,6 @@ export default function App() {
           </div>
         </section>
       </main>
-
-      {/* =====================================================================
-          FOOTER COM INDICADORES DE ATALHOS VISÍVEIS
-          ===================================================================== */}
-      <footer className="abyssal-footer">
-        <div className="footer-left">
-          <strong>Shark Tank:</strong> React (Vite) @ <code>localhost:5173</code>
-        </div>
-        <div className="footer-shortcuts">
-          <Keyboard size={14} />
-          <strong>Teclas de Atalho das Habilidades Ativas:</strong>
-          <span className="footer-key-pill">Tecla [ Q ] / Clique Esq. → Habilidade 1</span>
-          <span className="footer-key-pill">Tecla [ W ] / [ Espaço ] / Clique Dir. → Habilidade 2</span>
-          <span className="footer-key-pill">Tecla [ Tab ] → Trocar Aba</span>
-        </div>
-      </footer>
     </div>
   );
 }
