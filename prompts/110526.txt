@@ -15,3 +15,16 @@ dificuldade por cores
 
 ** prompt 3 
 --- aplicado spec gerada ::::
+
+
+** prompt 4 
+
+Gere uma spec com nome spec11152026_2.txt  na pasta /home/walter/repos/4z5s/4z-ai-codechallenges-main/prompts
+que remova os nomes das cores nas informações mas não remova os informativos com nomes de cores, deixe apenas o seu conteudo sequente
+modifique o nome do jogo para apenas SharkTank e remova o subtítulo 
+remova as informações no rodapé 
+remova a seleção de categorias na aba de arvore de habilidades 
+
+faça com que o jogo reinicie seu estado toda vez que reiniciar o browser, aplique algum mecanismo que 
+seja possível identificar a sessão atual e quando o jogo recarregou totalmente a tela.
+

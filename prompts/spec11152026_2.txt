@@ -1,0 +1,184 @@
+# Especificação Complementar de Interface e Ciclo de Sessão: SharkTank
+**Arquivo de Especificação:** `prompts/spec11152026_2.txt`  
+**Projeto Alvo:** `SharkTank` (`/home/walter/repos/4z5s/4z-ai-codechallenges-main`)
+
+> [!IMPORTANT]
+> Esta especificação define as regras técnicas e visuais para:
+> 1. **Remover os nomes literais das cores nas informações**, mantendo **intactos os informativos visuais coloridos** e exibindo **apenas o seu conteúdo sequente** (ex.: remover `"Cor Verde — "` e exibir apenas `"Águas Calmas"` dentro do badge verde; remover `"Rosa Coral"` e exibir apenas `"Mordida & Ataque"` dentro do badge rosa).
+> 2. **Modificar o nome do jogo para apenas `SharkTank`** e **remover o subtítulo** na barra superior (Topbar).
+> 3. **Remover as informações no rodapé** (`<footer>`) da interface.
+> 4. **Remover a seleção de categorias** (botões de filtro de quadrantes/categorias) na aba da Árvore de Habilidades Passivas.
+> 5. **Reiniciar o estado completo do jogo toda vez que o browser for reiniciado ou recarregado**, aplicando um mecanismo explícito capaz de **identificar a sessão atual** (`sessionId`) e detectar **quando o jogo recarregou totalmente a tela** (`screenFullyLoaded`).
+
+---
+
+## 1. Remoção dos Nomes das Cores nos Textos (Mantendo os Informativos Coloridos e Seu Conteúdo Sequente)
+
+Os badges, pílulas, bolinhas cromáticas e caixas coloridas **permanecem na interface** com suas respectivas cores visuais, porém **sem escrever o nome da cor no texto**, restando apenas o conteúdo descritivo/funcional que vinha em sequência.
+
+### 1.1. Informativos de Dificuldade (`client/src/data/gameCatalog.js`, `MapDeviceTab.jsx`, `OceanCanvas.jsx`, `App.jsx`)
+
+| Cor Visual do Informativo | Texto Anterior (Com Nome da Cor) | Novo Texto Exibido (Apenas Conteúdo Sequente) |
+| :---: | :--- | :--- |
+| 🟢 Badge Verde (`#2ED573`) | `Cor Verde — Águas Calmas` / `Cor Verde` | **`Águas Calmas`** |
+| 🔵 Badge Azul (`#38BDF8`) | `Cor Azul Bebê — Brisa Suave` / `Cor Azul Bebê` | **`Brisa Suave`** |
+| 🟡 Badge Amarelo (`#FACC15`) | `Cor Amarela — Correnteza Agitada` / `Cor Amarela` | **`Correnteza Agitada`** |
+| 🟠 Badge Laranja (`#FB923C`) | `Cor Laranja — Mar Perigoso` / `Cor Laranja` | **`Mar Perigoso`** |
+| 🔴 Badge Vermelho (`#F43F5E`) | `Cor Vermelha — Alerta de Predadores` / `Cor Vermelha` | **`Alerta de Predadores`** |
+| 🟣 Badge Roxo (`#A855F7`) | `Cor Roxa — Profundezas Misteriosas` / `Cor Roxa` | **`Profundezas Misteriosas`** |
+
+* **Descrições e Modificadores (`MAP_AFFIXES_CATALOG` e `DIFFICULTY_COLOR_SCALE`):**
+  * Em `DIFFICULTY_COLOR_SCALE[0].description`: alterar `"Passeio tranquilo e seguro nas águas rasas azul-bebê."` para **`"Passeio tranquilo e seguro nas águas rasas."`**.
+  * Nos cards de desafios do mar (`MAP_AFFIXES_CATALOG`), o badge colorido à direita do título permanece estilizado com a cor do desafio (`affix.color`), exibindo **apenas a categoria funcional** (`Velocidade`, `Ambiente`, `Veneno`, `Elétrico`, `Físico`, `Raros`, `Degeneração`, `Chefe`) em vez de `"Cor Azul Bebê"`, `"Cor Lilás"`, `"Cor Rosa Doce"`, etc.
+
+### 1.2. Informativos da Árvore de Passivas (`client/src/components/PassiveTreeTab.jsx` e `server/src/gameData.js`)
+
+| Cor do Ramo na Árvore | Texto Anterior (Com Nome da Cor) | Novo Texto Exibido (Apenas Conteúdo Sequente) |
+| :---: | :--- | :--- |
+| 🌸 Ramo `#FF6B8B` (`NW`) | `Tipo de Categoria: Rosa Coral (Mordida & Ataque)` | **`Tipo de Categoria: Mordida & Ataque`** |
+| ☀️ Ramo `#FF9F43` (`NE`) | `Tipo de Categoria: Laranja Sol (Projéteis & Área)` | **`Tipo de Categoria: Projéteis & Área`** |
+| 💧 Ramo `#0284C7` (`SW`) | `Tipo de Categoria: Azul Bebê (Defesa & Fôlego)` | **`Tipo de Categoria: Defesa & Fôlego`** |
+| 🌿 Ramo `#10B981` (`SE`) | `Tipo de Categoria: Verde Menta (Velocidade & Utilidade)` | **`Tipo de Categoria: Velocidade & Utilidade`** |
+
+* **Rótulos no Fundo do Grafo SVG (`PassiveTreeTab.jsx`):**
+  * Substituir `"CATEGORIA ROSA CORAL (MORDIDA & ATAQUE)"` por **`"MORDIDA & ATAQUE"`**.
+  * Substituir `"CATEGORIA LARANJA SOL (PROJÉTEIS & ÁREA)"` por **`"PROJÉTEIS & ÁREA"`**.
+  * Substituir `"CATEGORIA AZUL BEBÊ (DEFESA & FÔLEGO)"` por **`"DEFESA & FÔLEGO"`**.
+  * Substituir `"CATEGORIA VERDE MENTA (VELOCIDADE & UTILIDADE)"` por **`"VELOCIDADE & UTILIDADE"`**.
+  * No nó central do SVG, alterar `"Origem Azul Bebê"` para **`"Origem"`**.
+* **Overlay de Pausa no Oceano (`OceanCanvas.jsx`):**
+  * Alterar `"Oceano Azul Bebê Pausado"` para **`"Oceano Pausado"`**.
+
+---
+
+## 2. Identidade do Topo (`SharkTank` Sem Subtítulo) e Remoção do Rodapé
+
+### 2.1. Nome do Jogo `SharkTank` e Remoção do Subtítulo (`client/src/App.jsx` e `client/index.html`)
+* Na barra superior (`.abyssal-topbar` $\rightarrow$ `.brand-titles`):
+  * Alterar o título principal `<h1>` para exibir **exclusivamente**:
+    ```jsx
+    <div className="brand-titles">
+      <h1>SharkTank</h1>
+    </div>
+    ```
+  * **Remover completamente** o elemento `<span className="brand-subtitle">...</span>`.
+* Em `client/index.html`:
+  * Definir `<title>SharkTank</title>`.
+
+### 2.2. Remoção das Informações no Rodapé (`client/src/App.jsx` e `client/src/App.css`)
+* **Remover integralmente** o componente `<footer className="abyssal-footer">...</footer>` do final de `client/src/App.jsx`.
+* O container principal `<main className="abyssal-tripartite-grid">` passa a ocupar todo o espaço vertical restante abaixo da Topbar (`flex: 1; height: calc(100vh - topbar)`), eliminando qualquer faixa de informações no rodapé.
+
+---
+
+## 3. Remoção da Seleção de Categorias na Aba de Árvore de Habilidades (`PassiveTreeTab.jsx`)
+
+* Em `client/src/components/PassiveTreeTab.jsx`:
+  * **Remover completamente** o bloco `<div className="quadrant-jump-btns">...</div>` que continha os 5 botões de seleção/filtro de categorias (`Todas as Cores`, `Rosa Coral`, `Laranja Sol`, `Azul Bebê`, `Verde Menta`).
+  * Remover o estado `selectedCategoryFilter` para que todos os 300 nós da árvore permaneçam sempre visíveis e selecionáveis livremente no grafo.
+  * Manter na barra de controles apenas a busca textual por nome/efeito da habilidade e os controles de zoom/centralização no próprio grafo.
+
+---
+
+## 4. Reinício de Estado a Cada Reload/Reinício do Browser e Identificação de Sessão e Carregamento Total
+
+Toda vez que o navegador for reiniciado, uma nova aba for aberta ou a página for recarregada (`F5` / `Ctrl+R`), o jogo deve **reiniciar seu estado do zero** (Nível 1, 0 XP, 0 Biomassa, 1 ponto de passiva disponível, 0 passivas alocadas, Zona 1 sem desafios extras e simulação oceânica renovada).
+
+### 4.1. Arquitetura do Mecanismo de Sessão e Detecção de Carregamento Total da Tela
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as Browser (Window / DOM)
+    participant SessionMgr as Gerenciador de Sessão (App.jsx)
+    participant API as Backend Express (/api/game/session/init)
+    participant DB as SQLite WAL
+
+    Browser->>SessionMgr: Evento de Boot / Recarregamento da Página (load / pageshow)
+    SessionMgr->>SessionMgr: Detecta tipo de navegação (PerformanceNavigationTiming: reload | navigate)
+    SessionMgr->>SessionMgr: Gera novo sessionId único (ex.: sess_<timestamp>_<uuid>)
+    SessionMgr->>SessionMgr: Salva sessionId em sessionStorage e window.__SHARKTANK_SESSION__
+    SessionMgr->>API: POST /api/game/profile/reset { mode: 'full', sessionId, navigationType }
+    API->>DB: Reseta jogador_build (Nv.1, XP 0, Biomassa 0, Passivas []) + mapa_config (Tier 1)
+    DB-->>API: Estado limpo confirmado
+    API-->>SessionMgr: Retorna perfil zerado + metadados { sessionId, resetAt }
+    Browser->>SessionMgr: document.readyState === 'complete' + 1º frame do Canvas renderizado
+    SessionMgr->>Browser: Marca data-session-id e data-screen-fully-loaded="true" no DOM
+```
+
+### 4.2. Especificação Técnica do Mecanismo no Frontend (`client/src/App.jsx`)
+
+1. **Geração e Registro da Sessão Atual (`sessionId`):**
+   * No carregamento do aplicativo, gerar um identificador único para a sessão de página atual:
+     ```javascript
+     function createPageSessionInfo() {
+       const navEntry = performance.getEntriesByType?.('navigation')?.[0];
+       const navType = navEntry?.type || 'navigate'; // 'navigate' | 'reload' | 'back_forward'
+       const previousSessionId = sessionStorage.getItem('sharktank_session_id');
+       const sessionId = `st_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+
+       sessionStorage.setItem('sharktank_session_id', sessionId);
+       sessionStorage.setItem('sharktank_previous_session_id', previousSessionId || 'none');
+       sessionStorage.setItem('sharktank_loaded_at', new Date().toISOString());
+
+       return {
+         sessionId,
+         previousSessionId,
+         navigationType: navType,
+         isReload: navType === 'reload' || Boolean(previousSessionId),
+         loadedAt: new Date().toISOString(),
+         screenFullyLoaded: false
+       };
+     }
+     ```
+2. **Detecção de Quando o Jogo Recarregou Totalmente a Tela (`screenFullyLoaded`):**
+   * O estado `screenFullyLoaded` só passa para `true` quando **ambas** as condições abaixo forem satisfeitas:
+     1. O evento de carregamento completo da janela (`document.readyState === 'complete'` / `window.addEventListener('load', ...)`) tiver concluído; **e**
+     2. O backend tiver confirmado o reset completo da sessão (`POST /api/game/profile/reset` com `mode: 'full'`) e os dados iniciais da árvore e do oceano estiverem renderizados na tela.
+   * Expor esses atributos de forma inspecionável no DOM principal (`.abyssal-app-shell`) e no objeto global `window.__SHARKTANK_SESSION__`:
+     * `data-session-id={sessionInfo.sessionId}`
+     * `data-navigation-type={sessionInfo.navigationType}`
+     * `data-screen-loaded={screenFullyLoaded ? 'true' : 'false'}`
+   * Exibir também na Topbar uma pílula discreta de status da sessão (`.session-status-pill`) indicando visualmente que a sessão atual está ativa e a tela foi 100% carregada (ex.: `● Sessão Ativa`).
+
+### 4.3. Especificação Técnica no Backend (`server/src/index.js`)
+* No endpoint `POST /api/game/profile/reset` (quando `mode === 'full'`):
+  * Resetar `jogador_build` (`nivel = 1`, `xp_atual = 0`, `xp_proximo_nivel = 100`, `biomassa = 0`, `pontos_passiva_disponiveis = 1`, `nos_passivas_json = '[]'`, `habilidades_equipadas_json = '["snap_strike", "tail_sweep"]'`).
+  * Resetar `mapa_config` (`tier = 1`, `dificuldade_calculada = 10.0`, `densidade_peixes_max = 14`, `afixos_json = '[]'`, `status = 'em_andamento'`).
+  * Limpar `historico_expedicoes`, `peixes` e `peixes_comidos` para garantir que nenhum dado residual de sessões anteriores permaneça.
+  * Retornar no JSON de resposta o objeto `session`:
+    ```json
+    {
+      "success": true,
+      "session": {
+        "sessionId": "st_...",
+        "resetConfirmed": true,
+        "resetTimestamp": "2026-11-05T..."
+      }
+    }
+    ```
+
+---
+
+## 5. Mapeamento de Arquivos a Modificar
+
+| Arquivo | Alterações Especificadas |
+| :--- | :--- |
+| `client/index.html` | Alterar `<title>` para `SharkTank`. |
+| `client/src/data/gameCatalog.js` | Remover os prefixos `"Cor Verde — "`, `"Cor Azul Bebê — "`, etc. de `DIFFICULTY_COLOR_SCALE` e remover `colorName` de `MAP_AFFIXES_CATALOG`, mantendo apenas o conteúdo sequente (`Águas Calmas`, `Brisa Suave`, `Correnteza Agitada`, `Mar Perigoso`, `Alerta de Predadores`, `Profundezas Misteriosas` e as categorias dos desafios). |
+| `server/src/gameData.js` | Remover os nomes de cores dos títulos dos quadrantes (`Categoria: Mordida & Ataque`, `Categoria: Projéteis & Área`, `Categoria: Defesa & Fôlego`, `Categoria: Velocidade & Utilidade`). |
+| `client/src/components/PassiveTreeTab.jsx` | 1. Remover a barra `.quadrant-jump-btns` (seleção de categorias).<br/>2. Remover os nomes das cores em `TREE_CATEGORIES` e nos textos do SVG, deixando apenas o conteúdo sequente (`Tipo de Categoria: Mordida & Ataque`, `Projéteis & Área`, `Defesa & Fôlego`, `Velocidade & Utilidade`). |
+| `client/src/components/MapDeviceTab.jsx` | Exibir nos informativos coloridos apenas o conteúdo sequente (`activeColorInfo.label` sem nome da cor, e `affix.category` sem nome da cor). |
+| `client/src/components/OceanCanvas.jsx` | Remover nomes de cores nos textos de cabeçalho/overlay e sincronizar o reset do mundo físico (`resetWorldForExpedition`) sempre que o `sessionId` mudar. |
+| `client/src/App.jsx` | 1. Alterar o título para `<h1>SharkTank</h1>` e remover `.brand-subtitle`.<br/>2. Remover o `<footer className="abyssal-footer">`.<br/>3. Implementar o gerenciador de sessão (`sessionId`) + detecção de carregamento completo da tela (`screenFullyLoaded`) + chamada automática a `POST /api/game/profile/reset` (`mode: 'full'`) a cada boot/reload do navegador. |
+| `server/src/index.js` | Atualizar `POST /api/game/profile/reset` (`mode: 'full'`) para limpar todas as tabelas e retornar a confirmação da nova `sessionId`. |
+
+---
+
+## 6. Checklist de Validação
+
+- [ ] **Nomes das cores removidos dos textos, mantendo os informativos coloridos e seu conteúdo sequente:** Badges de dificuldade e de categoria da árvore continuam coloridos, mas exibem apenas `Águas Calmas`, `Brisa Suave`, `Correnteza Agitada`, `Mar Perigoso`, `Alerta de Predadores`, `Profundezas Misteriosas` e `Tipo de Categoria: Mordida & Ataque` / `Projéteis & Área` / `Defesa & Fôlego` / `Velocidade & Utilidade`.
+- [ ] **Título `SharkTank` sem subtítulo:** A Topbar exibe apenas `SharkTank` ao lado da logo, sem subtítulo.
+- [ ] **Sem informações no rodapé:** O elemento `<footer>` foi removido da interface.
+- [ ] **Sem seleção de categorias na aba de passivas:** Os botões de filtro por categoria acima do grafo da árvore de passivas foram removidos.
+- [ ] **Reset automático ao reiniciar/recarregar o browser + Identificação de Sessão e Carregamento Total:** Todo F5 ou reinício do navegador gera um novo `sessionId`, reseta o jogo para o Nível 1 / estado inicial e sinaliza quando a tela recarregou totalmente (`data-session-id`, `data-screen-loaded="true"` e `window.__SHARKTANK_SESSION__`).
