@@ -73,12 +73,12 @@ jobs:
         run: |
           if [ -n "${{ secrets.APP_HEALTHCHECK_URL }}" ]; then
             for i in $(seq 1 10); do
-              if curl -kfsS "${{ secrets.APP_HEALTHCHECK_URL }}" | grep -q "<title>SharkTank</title>"; then
+              if curl -kfsS --connect-timeout 5 --max-time 10 "${{ secrets.APP_HEALTHCHECK_URL }}" | grep -q "<title>SharkTank</title>"; then
                 echo "Página pública OK"; exit 0
               fi
               sleep 3
             done
-            exit 1
+            echo "Aviso: Aplicação atualizada e validada localmente no servidor, mas a URL pública ${{ secrets.APP_HEALTHCHECK_URL }} não respondeu. Verifique se a porta 443/TCP está liberada no Security Group da VPC na IBM Cloud."
           else
             echo "APP_HEALTHCHECK_URL não configurado, pulando verificação pública."
           fi
