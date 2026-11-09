@@ -5,10 +5,7 @@ const challenges = [
     category: 'Simulação',
     difficulty: 'Médio',
     type: 'simulation_multithread',
-    description: 'Avalie o comportamento do jogo e identifique problemas.',
-    instructions: 'Avalie o comportamento do jogo e identifique problemas.',
-    initialCode: '',
-    testCases: []
+    description: 'Avalie o comportamento do jogo e identifique problemas.'
   }
 ];
 

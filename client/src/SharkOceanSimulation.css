@@ -151,14 +151,6 @@
   background: linear-gradient(135deg, #ff7214 0%, #ffa05c 100%);
 }
 
-.start-subtitle {
-  margin-top: 0.85rem;
-  font-size: 0.82rem;
-  color: #93c5fd;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-}
 
 /* Entidade Tubarão */
 .shark-entity {

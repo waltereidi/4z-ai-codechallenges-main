@@ -19,4 +19,16 @@
 
     remover arquivos e codigo morto
     dividir em componentes menores , para aumentar manuteabilidade
+
+
+    prompt 1 :
+    faça uma revisão e remova todo o código morto e arquivos não utilizados
+    prompt 2 : 
+    divisão das pastas usando arquitetura clean code
+    prompt 3 : 
+    refatore  os arquivos js para utilizar typescript 
+    prompt 4 : 
+    para o arquivo principal da aplicação faça uma divisão para
+    arquivos menores
+     
     

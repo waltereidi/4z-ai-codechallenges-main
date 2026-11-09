@@ -464,7 +464,7 @@ export default function SharkOceanSimulation() {
           </div>
           <div className="eaten-log-grid">
             {eatenLog.map((log, idx) => (
-              <div key={idx} className="eaten-log-pill">
+              <div key={log.id || `${log.peixe_id}-${log.hora_comeu}-${idx}`} className="eaten-log-pill">
                 <span className="log-shark">{log.tubarao_nome}</span>
                 <span className="log-time">{new Date(log.hora_comeu).toLocaleTimeString()}</span>
                 <span className="log-tam">{log.tamanho_peixe}px</span>

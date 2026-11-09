@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Code2, Menu, X, Waves } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Menu, X, Waves } from 'lucide-react';
 import SharkOceanSimulation from './SharkOceanSimulation';
 import './App.css';
 
@@ -8,10 +8,18 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 function App() {
   const [challenges, setChallenges] = useState([]);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [code, setCode] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-  const [executionResult, setExecutionResult] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const loadChallengeDetail = useCallback(async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/challenges/${id}`);
+      const data = await res.json();
+      setSelectedChallenge(data);
+      setSidebarOpen(false);
+    } catch (err) {
+      console.error('Erro ao carregar detalhes:', err);
+    }
+  }, []);
 
   // Buscar lista de desafios
   useEffect(() => {
@@ -28,50 +36,7 @@ function App() {
       .catch(err => {
         console.error('Erro ao conectar com API:', err);
       });
-  }, []);
-
-  const loadChallengeDetail = async (id) => {
-    try {
-      const res = await fetch(`${API_BASE}/challenges/${id}`);
-      const data = await res.json();
-      setSelectedChallenge(data);
-      setCode(data.initialCode || '');
-      setExecutionResult(null);
-      setSidebarOpen(false);
-    } catch (err) {
-      console.error('Erro ao carregar detalhes:', err);
-    }
-  };
-
-  const handleRunTests = async () => {
-    if (!selectedChallenge) return;
-    setIsRunning(true);
-    setExecutionResult(null);
-
-    try {
-      const res = await fetch(`${API_BASE}/challenges/${selectedChallenge.id}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-      const data = await res.json();
-      setExecutionResult(data);
-    } catch (err) {
-      setExecutionResult({
-        success: false,
-        error: `Falha na conexão com o servidor: ${err.message}`
-      });
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleResetCode = () => {
-    if (selectedChallenge) {
-      setCode(selectedChallenge.initialCode || '');
-      setExecutionResult(null);
-    }
-  };
+  }, [loadChallengeDetail]);
 
   const getDifficultyPill = (diff) => {
     switch (diff) {
@@ -156,32 +121,14 @@ function App() {
                   </span>
                 </div>
                 <p className="challenge-text-desc" style={{ fontSize: '1rem', color: '#f3e8ff', fontWeight: 500 }}>
-                  Avalie o comportamento do jogo e identifique problemas.
+                  {selectedChallenge.description || 'Avalie o comportamento do jogo e identifique problemas.'}
                 </p>
               </div>
 
               {/* Bloco da Direita: Oceano e Tubarões */}
-              {selectedChallenge.id === 'ocean-sharks-multithread' ? (
-                <div style={{ flex: 1, padding: '1.25rem', display: 'flex', minHeight: '520px' }}>
-                  <SharkOceanSimulation />
-                </div>
-              ) : (
-                <div className="zoom-split-pane">
-                  <div className="editor-box">
-                    <div className="pane-bar">
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Code2 size={15} color="#fa6400" /> Solução JavaScript
-                      </span>
-                    </div>
-                    <textarea
-                      className="code-textarea"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      spellCheck="false"
-                    />
-                  </div>
-                </div>
-              )}
+              <div style={{ flex: 1, padding: '1.25rem', display: 'flex', minHeight: '520px' }}>
+                <SharkOceanSimulation />
+              </div>
             </>
           ) : (
             <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
