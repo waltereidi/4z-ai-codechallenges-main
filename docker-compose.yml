@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 4z-ai-codechallenges
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
+      - ALT_PORT=5000
+      - DB_PATH=/app/data/shark_tank.db
+    volumes:
+      - sqlite_data:/app/data
+
+volumes:
+  sqlite_data:
+    driver: local

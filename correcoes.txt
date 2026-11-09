@@ -1,0 +1,22 @@
+
+  * Backend (server/src/): Não há divisão em camadas arquiteturais (routes/,
+    controllers/, services/, models/). Todos os arquivos estão na raiz de
+    server/src/ (index.js, database.js, challengesData.js).
+
+     * client/src/assets/react.svg: Arquivo SVG padrão do template Vite sem uso ou import.
+     * client/src/App.jsx: Import de 6 ícones ociosos de 'lucide-react' (Play, RotateCcw,
+    CheckCircle, XCircle, Terminal, Sparkles) que nunca são renderizados no JSX.
+
+
+- Organização de pastas:
+  * Frontend (client/src/): Não há separação por pastas. Todos os arquivos estão
+    na raiz de src/ (App.jsx, SharkOceanSimulation.jsx, App.css, SharkOceanSimulation.css,
+    index.css, main.jsx). Ausência de pastas como components/, pages/, hooks/,
+    services/ e utils/.
+  * Backend (server/src/): Não há divisão em camadas arquiteturais (routes/,
+    controllers/, services/, models/). Todos os arquivos estão na raiz de
+    server/src/ (index.js, database.js, challengesData.js).
+
+    remover arquivos e codigo morto
+    dividir em componentes menores , para aumentar manuteabilidade
+    

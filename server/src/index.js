@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const { challenges } = require('./challengesData');
@@ -7,6 +9,7 @@ const { db } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const ALT_PORT = process.env.ALT_PORT || (PORT == 5000 ? 5173 : 5000);
 
 app.use(cors());
 app.use(express.json());
@@ -99,6 +102,22 @@ app.post('/api/shark-tank/reset', (req, res) => {
   res.json({ success: true });
 });
 
-app.listen(PORT, () => {
+// Entrega estática do frontend React (Vite) quando compilado
+const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+if (ALT_PORT && String(ALT_PORT) !== String(PORT)) {
+  app.listen(ALT_PORT, '0.0.0.0', () => {
+    console.log(`Server also accessible on http://localhost:${ALT_PORT}`);
+  });
+}

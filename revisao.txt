@@ -1,0 +1,260 @@
+================================================================================
+RELATÓRIO DE REVISÃO DE CÓDIGO E DEPENDÊNCIAS - 4Z AI CODE CHALLENGES
+Branch / Commit avaliado: danilo-5becc18 (commit 5becc18 - "feat: initial release")
+Data da avaliação: 09/11/2026
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ESTRUTURA E ORGANIZAÇÃO
+--------------------------------------------------------------------------------
+- Organização de pastas:
+  * Frontend (client/src/): Não há separação por pastas. Todos os arquivos estão
+    na raiz de src/ (App.jsx, SharkOceanSimulation.jsx, App.css, SharkOceanSimulation.css,
+    index.css, main.jsx). Ausência de pastas como components/, pages/, hooks/,
+    services/ e utils/.
+  * Backend (server/src/): Não há divisão em camadas arquiteturais (routes/,
+    controllers/, services/, models/). Todos os arquivos estão na raiz de
+    server/src/ (index.js, database.js, challengesData.js).
+- Nomes de arquivos e componentes:
+  * Componentes React utilizam PascalCase consistente (App.jsx, SharkOceanSimulation.jsx).
+  * Arquivos de backend utilizam camelCase consistente (challengesData.js, database.js, index.js).
+- Responsabilidade e tamanho de componentes:
+  * SharkOceanSimulation.jsx concentra 481 linhas acumulando múltiplas responsabilidades:
+    - Declaração de código de Web Worker multithread inline como string.
+    - Loop de renderização Canvas 2D via requestAnimationFrame.
+    - Lógica de colisão física e cálculo de distâncias.
+    - Chamadas HTTP diretas via fetch para 4 endpoints da API.
+    - Renderização da interface visual, cards de tubarões e controles.
+  * App.jsx (197 linhas) mistura controle de menu mobile, seleção de desafios,
+    editor de código estático e renderização de layout.
+- Código morto e arquivos sem uso:
+  * client/src/assets/react.svg: Arquivo SVG padrão do template Vite sem uso ou import.
+  * client/src/App.jsx: Import de 6 ícones ociosos de 'lucide-react' (Play, RotateCcw,
+    CheckCircle, XCircle, Terminal, Sparkles) que nunca são renderizados no JSX.
+  * client/src/App.jsx: Estados 'isRunning' e 'executionResult' e funções
+    'handleRunTests' e 'handleResetCode' tornaram-se código ocioso quando o desafio
+    é 'ocean-sharks-multithread' (o painel de execução é substituído pela simulação).
+  * Logs residuais esquecidos:
+    - console.error em client/src/App.jsx (linhas 29 e 42).
+    - console.log em server/src/index.js (linha 103).
+    
+    ESTRUTURA E REMOVER ARQUIVOS
+
+--------------------------------------------------------------------------------
+2. DEPENDÊNCIAS E CONFIGURAÇÃO
+--------------------------------------------------------------------------------
+- Diagnóstico de pacotes por módulo:
+  * Raiz (package.json):
+    - "concurrently": ^9.2.5 (devDependency) -> EM USO no script "dev" para orquestrar
+      backend e frontend paralelamente.
+  * Backend (server/package.json):
+    - "express": ^4.21.2 -> EM USO (servidor HTTP REST e roteamento).
+    - "cors": ^2.8.5 -> EM USO (middleware para permitir requisições da porta do Vite).
+    - "dotenv": ^16.4.7 -> EM USO (carregamento de PORT de process.env).
+    - "better-sqlite3": ^13.0.3 -> EM USO (driver SQLite nativo síncrono).
+  * Frontend (client/package.json):
+    - "react": ^19.3.1 e "react-dom": ^19.3.1 -> EM USO (versão moderna React 19).
+    - "lucide-react": ^1.67.0 -> EM USO (porém com imports mortos em App.jsx).
+    - "vite": ^8.3.5 -> EM USO (bundler e dev server principal).
+    - "@vitejs/plugin-react": ^6.1.2 -> EM USO no vite.config.js.
+    - "oxlint": ^1.89.0 -> EM USO no script "lint".
+    - "@types/react": ^19.3.0 e "@types/react-dom": ^19.3.0 -> NÃO UTILIZADOS no build
+      ou runtime. O projeto é 100% JavaScript (sem tsconfig.json e sem arquivos .ts/.tsx).
+      Servem unicamente para IntelliSense do editor, sendo desnecessários para o bundle.
+- Vulnerabilidades e compilação:
+  * better-sqlite3 versão 13.0.3 requer toolchain nativo C++ (node-gyp / python / build-essential)
+    caso a versão do Node.js local não possua binário pré-compilado disponível.
+- Ferramenta de build:
+  * Utiliza Vite 8 com React 19 (excelente escolha moderna, descartando o legado Create React App).
+- ESLint e Prettier:
+  * Ausência de ESLint e Prettier configurados (.eslintrc, eslint.config.js e .prettierrc ausentes).
+  * Falta o plugin fundamental 'eslint-plugin-react-hooks' para auditoria automática de
+    dependências de hooks e ciclo de vida.
+  * O linter configurado é o 'oxlint', que é rápido, mas não substitui totalmente as regras
+    específicas de hooks do React.
+- Tipagem:
+  * Ausência de TypeScript e ausência de prop-types para validação das propriedades dos componentes.
+
+passar para ts 
+
+--------------------------------------------------------------------------------
+3. COMPONENTES
+--------------------------------------------------------------------------------
+- Tipo de componentes:
+  * Todos funcionais com hooks modernos, sem componentes legados de classe.
+- Prop drilling:
+  * Inexistente devido à árvore rasa de componentes, mas há hiperconcentração
+    monolítica em SharkOceanSimulation.jsx.
+- Keys em listas dinâmicas:
+  * App.jsx (linha 128): challenges.map(c => <div key={c.id}>) -> Correto, chave estável única.
+  * SharkOceanSimulation.jsx (linha 365): sharks.map(s => <div key={s.id}>) -> Correto.
+  * SharkOceanSimulation.jsx (linha 407): eatenHistory.map((item, index) => <div key={index}>)
+    -> PROBLEMA: usa o índice do array como key. Quando novos peixes comidos são adicionados
+    ao topo da lista, o React tem problemas de reconciliação no DOM. Deve usar 'item.id'.
+- Lógica de negócio misturada à UI:
+  * Severamente misturada em SharkOceanSimulation.jsx. Cálculos de física, colisão de objetos,
+    criação/sincronização de Web Workers e chamadas fetch() estão acopladas diretamente no JSX.
+  * No backend, handlers do Express executam queries SQL diretamente sem uma camada de serviço.
+- Oportunidades de abstração:
+  * Criar componentes isolados: SharkCard, OceanStatsPanel, HistoryFeed, ChallengeList.
+
+--------------------------------------------------------------------------------
+4. HOOKS E ESTADO
+--------------------------------------------------------------------------------
+- Dependências do useEffect:
+  * App.jsx (linha 17): useEffect executa loadChallengeDetail sem declará-lo como
+    dependência ou envolvê-lo em useCallback.
+  * SharkOceanSimulation.jsx: múltiplos useEffect gerenciando workers, canvas e polling
+    com dependências incompletas ou referências mutáveis.
+- Polling e timers:
+  * Polling a cada 2000ms via setInterval para buscar estatísticas (/api/shark-tank/stats).
+  * Falta AbortController nas requisições fetch dentro dos timers; se o componente for
+    desmontado durante um fetch pendente, pode haver vazamento de memória.
+- Estado derivado:
+  * Estados como contadores de estatísticas poderiam ser derivados ou gerenciados de
+    forma unificada.
+- Escopo do estado:
+  * Toda a simulação marinha vive em variáveis de estado isoladas locais em SharkOceanSimulation.jsx.
+    O uso de um Contexto ou store leve (Zustand) tornaria o fluxo de tubarões/peixes
+    previsível e testável.
+
+--------------------------------------------------------------------------------
+5. DADOS E API
+--------------------------------------------------------------------------------
+- Centralização de chamadas HTTP:
+  * INEXISTENTE. Chamadas fetch() dispersas diretamente nos componentes com URL base
+    hardcoded duplicada:
+    - const API_BASE = 'http://localhost:5000/api' em App.jsx:6 e SharkOceanSimulation.jsx:5.
+  * Não há módulo dedicado como 'services/api.js' ou 'services/challengeService.js'.
+- Tratamento de estados (Loading, Error, Empty):
+  * Loading: Não há feedback visual de carregamento enquanto busca dados da API.
+  * Error: Falhas de rede caem silenciosamente no console.error(), sem feedback amigável
+    ao usuário (Toast, banner ou Alert).
+  * Lista vazia: Há tratamento satisfatório em App.jsx quando não há desafios.
+- Cache e sincronização de dados:
+  * Não utiliza TanStack Query (React Query) ou SWR. O polling manual com setInterval(..., 2000)
+    não tem revalidação em foco de janela nem deduplicação de requisições.
+- Variáveis de ambiente (.env):
+  * Frontend NÃO utiliza .env (URL hardcoded para localhost). Quebra em ambientes de produção
+    (Docker, Vercel, VPS). Deve utilizar import.meta.env.VITE_API_URL.
+  * Backend possui dotenv configurado com fallback seguro para PORT = 5000.
+
+--------------------------------------------------------------------------------
+6. PERFORMANCE
+--------------------------------------------------------------------------------
+- Re-renderizações desnecessárias:
+  * O polling a cada 2 segundos atualiza múltiplos estados em SharkOceanSimulation.jsx,
+    forçando re-render de toda a árvore da simulação, mesmo quando dados não mudaram.
+- useMemo e useCallback:
+  * Ausentes no fluxo da simulação. Handlers de clique e funções de cálculo físico
+    são recriadas a cada ciclo de render.
+- Divisão de código e Lazy Loading:
+  * Ausência de React.lazy e Suspense. SharkOceanSimulation é pesado e envolve
+    Web Workers e animações Canvas; deveria ser carregado sob demanda.
+- Assets:
+  * Imagens em public/ (logo-4zoom-branco.png, logo_4zoom.png) são leves (2KB a 5KB)
+    e não comprometem o carregamento inicial.
+
+--------------------------------------------------------------------------------
+7. ESTILIZAÇÃO
+--------------------------------------------------------------------------------
+- Abordagem de CSS:
+  * Utiliza arquivos CSS globais (App.css, SharkOceanSimulation.css, index.css) sem
+    escopo local (CSS Modules ou Tailwind). Risco de colisão de classes de estilo.
+- Responsividade:
+  * Existe estrutura básica para mobile em App.css com menu lateral colapsável.
+  * Porém, o container do Canvas da simulação oceânica sofre compressão inadequada
+    em telas estreitas devido a dimensões rígidas em certos elementos.
+- Estilos inline (style={{ ... }}):
+  * Uso EXCESSIVO de estilos inline diretamente no JSX em App.jsx (linhas 122, 153, 158,
+    165, 172) e em SharkOceanSimulation.jsx. Dificulta a manutenibilidade, sobrescreve
+    temas e quebra o isolamento de estilos.
+
+--------------------------------------------------------------------------------
+8. ACESSIBILIDADE (A11Y)
+--------------------------------------------------------------------------------
+- HTML Semântico:
+  * Header, aside e main são utilizados em App.jsx.
+  * Em contrapartida, itens interativos são divs com onClick em vez de tags <button>:
+    - App.jsx (linha 127): <div className="challenge-item" onClick={...}> não possui
+      role="button", nem tabIndex="0", impossibilitando uso por navegação via teclado.
+- Imagens e Inputs:
+  * Imagens possuem atributo alt="4zOOm Logo".
+  * Em App.jsx (linha 176): textarea de código não tem label nem aria-label associado.
+- Navegação por teclado e contraste:
+  * Elementos do painel e histórico de peixes não recebem foco via tecla Tab.
+  * Certos textos roxos e cinzas sobre fundos escuros possuem taxa de contraste
+    abaixo de 4.5:1 recomendada pelas diretrizes WCAG 2.1 AA.
+
+--------------------------------------------------------------------------------
+9. SEGURANÇA
+--------------------------------------------------------------------------------
+- Injeção de código e XSS:
+  * Não há uso de dangerouslySetInnerHTML ou eval() no frontend.
+- Armazenamento de credenciais:
+  * Não há dados sensíveis expostos no localStorage.
+- Validação no Backend:
+  * Em /api/shark-tank/fish e /api/shark-tank/eat, as requisições não validam tipos,
+    tamanhos ou obrigatoriedade dos campos de req.body antes de disparar queries.
+  * O uso de prepared statements no SQLite protege contra SQL Injection comum, mas a
+    falta de sanitização de payload pode gerar falhas 500 não tratadas.
+
+--------------------------------------------------------------------------------
+10. TESTES
+--------------------------------------------------------------------------------
+- Cobertura de Testes:
+  * 0% DE TESTES AUTOMATIZADOS.
+  * Não há frameworks de testes configurados (Vitest, Jest, React Testing Library, Supertest).
+  * Não há script "test" no package.json de nenhum dos módulos (root, client ou server).
+  * Lógicas críticas (detecção de colisão marinha, concorrência de tubarões, persistência SQLite)
+    operam sem qualquer validação automatizada.
+
+--------------------------------------------------------------------------------
+11. ROTEAMENTO
+--------------------------------------------------------------------------------
+- Estrutura de Rotas:
+  * Não há biblioteca de rotas no frontend (react-router-dom ausente). A navegação é
+    puramente baseada em estados internos locais.
+  * Desvantagens: Impossibilidade de deep linking (compartilhar link direto de um desafio),
+    histórico do navegador (botão voltar/avançar) inoperante e ausência de tela 404 para
+    URLs inexistentes.
+  * No backend, endpoints inexistentes caem no erro HTML padrão do Express em vez de
+    retornar resposta JSON padronizada de erro ({ error: 'Not Found' }).
+
+--------------------------------------------------------------------------------
+12. QUALIDADE GERAL E DX (DEVELOPER EXPERIENCE)
+--------------------------------------------------------------------------------
+- Documentação (README.md):
+  * README.md raiz contém apenas 13 linhas com instruções básicas de npm run install:all
+    e npm run dev.
+  * Não detalha pré-requisitos de sistema (versão do Node, compilação de better-sqlite3),
+    arquitetura, variáveis de ambiente ou endpoints da API.
+  * README do client é o template padrão não editado gerado pelo Vite.
+- Scripts no package.json:
+  * Falta script unificado de teste e lint na raiz do monorepo.
+- Git e Controle de Versão:
+  * .gitignore está adequado (ignora node_modules, .env, dist, logs e arquivos de banco *.db,
+    *.db-wal, *.db-shm).
+  * Commit inicial (5becc18) com escopo muito amplo englobando frontend, backend e simulação
+    em um único commit.
+- Integração Contínua (CI/CD):
+  * Ausência de pipelines de CI (.github/workflows) para rodar linter, testes e build
+    automaticamente em pull requests no commit 5becc18.
+
+================================================================================
+PLANO DE AÇÃO SUGERIDO (ORDEM DE PRIORIDADE)
+================================================================================
+1. [ALTA] Centralizar chamadas HTTP em 'client/src/services/api.js' e criar arquivo .env
+   para configurar VITE_API_URL sem hardcode.
+2. [ALTA] Configurar ESLint + Prettier com eslint-plugin-react-hooks para proteger o
+   ciclo de vida e dependências dos hooks.
+3. [ALTA] Limpar imports ociosos de 'lucide-react' em App.jsx e remover dependências
+   inúteis (@types/react, @types/react-dom) em client/package.json.
+4. [MÉDIA] Quebrar SharkOceanSimulation.jsx em componentes menores (SharkCard,
+   OceanStats, HistoryFeed) e extrair o Web Worker para arquivo dedicado.
+5. [MÉDIA] Configurar Vitest + React Testing Library (frontend) e Supertest (backend)
+   com testes básicos para os fluxos principais.
+6. [MÉDIA] Corrigir key={index} para key={item.id} na listagem do histórico e substituir
+   divs clicáveis por tags <button> semânticas.
+7. [BAIXA] Implementar React Router para suporte a URLs amigáveis e página 404.
+================================================================================

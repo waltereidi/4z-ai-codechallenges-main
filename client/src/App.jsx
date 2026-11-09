@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RotateCcw, CheckCircle, XCircle, Terminal, Sparkles, Code2, Menu, X, Waves } from 'lucide-react';
+import { Code2, Menu, X, Waves } from 'lucide-react';
 import SharkOceanSimulation from './SharkOceanSimulation';
 import './App.css';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 function App() {
   const [challenges, setChallenges] = useState([]);

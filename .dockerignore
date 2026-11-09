@@ -1,0 +1,12 @@
+node_modules
+client/node_modules
+server/node_modules
+client/dist
+.git
+.gitignore
+*.log
+*.db
+*.db-shm
+*.db-wal
+revisao.txt
+correcoes.txt
