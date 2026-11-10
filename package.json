@@ -5,6 +5,8 @@
   "description": "Fullstack AI Code Challenges Platform",
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "test": "npm --prefix server run test && npm --prefix client run test",
     "server": "npm --prefix server start",
     "client": "npm --prefix client run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\""
