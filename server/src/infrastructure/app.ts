@@ -4,10 +4,11 @@ import path from 'path';
 import fs from 'fs';
 import { Router } from 'express';
 
-export function createApp(apiRouter: Router): Express {
+export function createApp(apiRouter: Router, corsOrigin: string = '*'): Express {
   const app = express();
 
-  app.use(cors());
+  const corsOptions = corsOrigin && corsOrigin !== '*' ? { origin: corsOrigin } : undefined;
+  app.use(cors(corsOptions));
   app.use(express.json());
 
   app.use('/api', apiRouter);

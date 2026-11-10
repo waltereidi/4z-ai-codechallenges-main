@@ -4,6 +4,19 @@ import { Shark } from '../../types/shark.js';
 import { Fish } from '../../types/fish.js';
 import { SharkEntity } from './SharkEntity.js';
 import { FishEntity } from './FishEntity.js';
+import {
+  AquariumArea,
+  WaterLayer,
+  BubblesContainer,
+  BubbleItem,
+  StartOverlay,
+  StartButton,
+  OceanFloor,
+  SeabedHill,
+  ControlsArea,
+  PauseButton,
+  ResetButton
+} from './OceanAquarium.styles.js';
 
 interface OceanAquariumProps {
   isRunning: boolean;
@@ -23,23 +36,23 @@ export const OceanAquarium: React.FC<OceanAquariumProps> = ({
   onReset
 }) => {
   return (
-    <div className="ocean-aquarium">
-      <div className="ocean-water-layer" />
-      <div className="ocean-bubbles">
-        <span className="bubble b1" />
-        <span className="bubble b2" />
-        <span className="bubble b3" />
-        <span className="bubble b4" />
-        <span className="bubble b5" />
-      </div>
+    <AquariumArea>
+      <WaterLayer />
+      <BubblesContainer>
+        <BubbleItem $left="15%" $size="14px" $duration="9s" $delay="1s" />
+        <BubbleItem $left="35%" $size="8px" $duration="6s" $delay="2s" />
+        <BubbleItem $left="55%" $size="18px" $duration="11s" $delay="0.5s" />
+        <BubbleItem $left="75%" $size="10px" $duration="7s" $delay="3s" />
+        <BubbleItem $left="90%" $size="12px" $duration="8.5s" $delay="1.5s" />
+      </BubblesContainer>
 
       {!isRunning && (
-        <div className="start-overlay">
-          <button className="btn-ocean-start" onClick={onStart}>
+        <StartOverlay>
+          <StartButton onClick={onStart}>
             <Play size={28} fill="#ffffff" />
             <span>INICIAR</span>
-          </button>
-        </div>
+          </StartButton>
+        </StartOverlay>
       )}
 
       {fishes.map(fish => (
@@ -50,14 +63,13 @@ export const OceanAquarium: React.FC<OceanAquariumProps> = ({
         <SharkEntity key={shark.id} shark={shark} />
       ))}
 
-      <div className="ocean-floor">
-        <div className="seabed-hill h1" />
-        <div className="seabed-hill h2" />
-      </div>
+      <OceanFloor>
+        <SeabedHill $variant="h1" />
+        <SeabedHill $variant="h2" />
+      </OceanFloor>
 
-      <div className="ocean-bottom-right-controls">
-        <button
-          className="btn-ocean-pause"
+      <ControlsArea>
+        <PauseButton
           onClick={isRunning ? onPause : onStart}
         >
           {isRunning ? (
@@ -71,11 +83,11 @@ export const OceanAquarium: React.FC<OceanAquariumProps> = ({
               <span>Retomar</span>
             </>
           )}
-        </button>
-        <button className="btn-ocean-reset" onClick={onReset} aria-label="Resetar simulação">
+        </PauseButton>
+        <ResetButton onClick={onReset} aria-label="Resetar simulação">
           <RotateCcw size={16} />
-        </button>
-      </div>
-    </div>
+        </ResetButton>
+      </ControlsArea>
+    </AquariumArea>
   );
 };

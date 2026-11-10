@@ -1,5 +1,6 @@
 import React from 'react';
 import { Fish } from '../../types/fish.js';
+import { FishEntityContainer } from './FishEntity.styles.js';
 
 interface FishEntityProps {
   fish: Fish;
@@ -7,14 +8,10 @@ interface FishEntityProps {
 
 export const FishEntity: React.FC<FishEntityProps> = ({ fish }) => {
   return (
-    <div
-      className="fish-entity"
-      style={{
-        left: `${fish.x}%`,
-        top: `${fish.y}%`,
-        width: `${fish.tamanho}px`,
-        height: `${Math.round(fish.tamanho * 0.65)}px`
-      }}
+    <FishEntityContainer
+      $x={fish.x}
+      $y={fish.y}
+      $size={fish.tamanho}
     >
       <svg viewBox="0 0 40 25" width="100%" height="100%" fill="none">
         <path
@@ -26,6 +23,6 @@ export const FishEntity: React.FC<FishEntityProps> = ({ fish }) => {
         <circle cx="32" cy="11" r="1.8" fill="#ffffff" />
         <circle cx="32.5" cy="11" r="0.9" fill="#000000" />
       </svg>
-    </div>
+    </FishEntityContainer>
   );
 };

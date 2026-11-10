@@ -2,6 +2,16 @@ import React from 'react';
 import { Waves } from 'lucide-react';
 import { Challenge } from '../types/challenge.js';
 import { DifficultyPill } from './DifficultyPill.js';
+import {
+  SidebarContainer,
+  SidebarHeader,
+  SidebarHeaderTitle,
+  ChallengeList,
+  ChallengeItem,
+  ChallengeItemTitle,
+  ChallengeItemMeta,
+  EmptyChallengesMessage
+} from './Sidebar.styles.js';
 
 interface SidebarProps {
   challenges: Challenge[];
@@ -17,33 +27,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectChallenge
 }) => {
   return (
-    <aside className={`zoom-sidebar ${sidebarOpen ? 'mobile-open' : ''}`}>
-      <div className="sidebar-header">
-        <span className="sidebar-header-title">Desafios ({challenges.length})</span>
+    <SidebarContainer $isOpen={sidebarOpen}>
+      <SidebarHeader>
+        <SidebarHeaderTitle>Desafios ({challenges.length})</SidebarHeaderTitle>
         <Waves size={16} color="#b03af0" />
-      </div>
+      </SidebarHeader>
 
-      <div className="challenge-list">
+      <ChallengeList>
         {challenges.length === 0 ? (
-          <div style={{ padding: '2rem 1.25rem', textAlign: 'center', color: 'var(--text-subtle)', fontSize: '0.85rem' }}>
+          <EmptyChallengesMessage>
             Nenhum desafio cadastrado.
-          </div>
+          </EmptyChallengesMessage>
         ) : (
           challenges.map(c => (
-            <div
+            <ChallengeItem
               key={c.id}
-              className={`challenge-item ${selectedChallenge?.id === c.id ? 'active' : ''}`}
+              $isActive={selectedChallenge?.id === c.id}
               onClick={() => onSelectChallenge(c.id)}
             >
-              <div className="challenge-item-title">{c.title}</div>
-              <div className="challenge-item-meta">
+              <ChallengeItemTitle>{c.title}</ChallengeItemTitle>
+              <ChallengeItemMeta>
                 <span>{c.category}</span>
                 <DifficultyPill difficulty={c.difficulty} />
-              </div>
-            </div>
+              </ChallengeItemMeta>
+            </ChallengeItem>
           ))
         )}
-      </div>
-    </aside>
+      </ChallengeList>
+    </SidebarContainer>
   );
 };

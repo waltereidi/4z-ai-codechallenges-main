@@ -4,6 +4,18 @@ import { Navbar } from '../components/Navbar.js';
 import { Sidebar } from '../components/Sidebar.js';
 import { DifficultyPill } from '../components/DifficultyPill.js';
 import { SharkOceanSimulation } from '../components/SharkTank/SharkOceanSimulation.js';
+import {
+  AppWrapper,
+  WorkspaceLayout,
+  SidebarBackdrop,
+  DetailArea,
+  DetailTopCard,
+  ChallengeTitleRow,
+  CategoryPill,
+  ChallengeDescription,
+  SimulationContainer,
+  EmptySelectionMessage
+} from './ChallengePage.styles.js';
 
 export const ChallengePage: React.FC = () => {
   const {
@@ -16,15 +28,15 @@ export const ChallengePage: React.FC = () => {
   } = useChallenges();
 
   return (
-    <div className="app-wrapper">
+    <AppWrapper>
       <Navbar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={toggleSidebar}
       />
 
-      <div className="zoom-workspace">
+      <WorkspaceLayout>
         {sidebarOpen && (
-          <div className="sidebar-backdrop" onClick={closeSidebar} />
+          <SidebarBackdrop onClick={closeSidebar} />
         )}
 
         <Sidebar
@@ -34,44 +46,32 @@ export const ChallengePage: React.FC = () => {
           onSelectChallenge={loadChallengeDetail}
         />
 
-        <main className="zoom-detail-area">
+        <DetailArea>
           {selectedChallenge ? (
             <>
-              <div className="detail-top-card">
-                <div className="challenge-title-row">
+              <DetailTopCard>
+                <ChallengeTitleRow>
                   <h2>{selectedChallenge.title}</h2>
                   <DifficultyPill difficulty={selectedChallenge.difficulty} />
-                  <span
-                    className="zoom-pill"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      color: '#d1c4e9',
-                      border: '1px solid rgba(255,255,255,0.1)'
-                    }}
-                  >
-                    {selectedChallenge.category}
-                  </span>
-                </div>
-                <p
-                  className="challenge-text-desc"
-                  style={{ fontSize: '1rem', color: '#f3e8ff', fontWeight: 500 }}
-                >
+                  <CategoryPill>{selectedChallenge.category}</CategoryPill>
+                </ChallengeTitleRow>
+                <ChallengeDescription>
                   {selectedChallenge.description || 'Avalie o comportamento do jogo e identifique problemas.'}
-                </p>
-              </div>
+                </ChallengeDescription>
+              </DetailTopCard>
 
-              <div style={{ flex: 1, padding: '1.25rem', display: 'flex', minHeight: '520px' }}>
+              <SimulationContainer>
                 <SharkOceanSimulation />
-              </div>
+              </SimulationContainer>
             </>
           ) : (
-            <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <EmptySelectionMessage>
               Selecione um desafio na lista lateral.
-            </div>
+            </EmptySelectionMessage>
           )}
-        </main>
-      </div>
-    </div>
+        </DetailArea>
+      </WorkspaceLayout>
+    </AppWrapper>
   );
 };
 

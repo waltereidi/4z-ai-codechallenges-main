@@ -3,6 +3,7 @@ import { useSharkOceanSimulation } from '../../hooks/useSharkOceanSimulation.js'
 import { OceanTopBar } from './OceanTopBar.js';
 import { OceanAquarium } from './OceanAquarium.js';
 import { EatenLogDrawer } from './EatenLogDrawer.js';
+import { OceanSimulationContainer } from './SharkOceanSimulation.styles.js';
 import '../../SharkOceanSimulation.css';
 
 export const SharkOceanSimulation: React.FC = () => {
@@ -17,7 +18,7 @@ export const SharkOceanSimulation: React.FC = () => {
   } = useSharkOceanSimulation();
 
   return (
-    <div className="ocean-container">
+    <OceanSimulationContainer>
       <OceanTopBar
         sharks={sharks}
         fishCount={fishes.length}
@@ -34,7 +35,7 @@ export const SharkOceanSimulation: React.FC = () => {
       />
 
       <EatenLogDrawer logs={eatenLog} />
-    </div>
+    </OceanSimulationContainer>
   );
 };
 

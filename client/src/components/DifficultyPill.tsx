@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChallengeDifficulty } from '../types/challenge.js';
+import { StyledPill } from './DifficultyPill.styles.js';
 
 interface DifficultyPillProps {
   difficulty: ChallengeDifficulty | string;
@@ -8,12 +9,12 @@ interface DifficultyPillProps {
 export const DifficultyPill: React.FC<DifficultyPillProps> = ({ difficulty }) => {
   switch (difficulty) {
     case 'Fácil':
-      return <span className="zoom-pill pill-easy">Fácil</span>;
+      return <StyledPill $variant="easy">Fácil</StyledPill>;
     case 'Médio':
-      return <span className="zoom-pill pill-medium">Médio</span>;
+      return <StyledPill $variant="medium">Médio</StyledPill>;
     case 'Difícil':
-      return <span className="zoom-pill pill-hard">Difícil</span>;
+      return <StyledPill $variant="hard">Difícil</StyledPill>;
     default:
-      return <span className="zoom-pill">{difficulty}</span>;
+      return <StyledPill>{difficulty}</StyledPill>;
   }
 };
